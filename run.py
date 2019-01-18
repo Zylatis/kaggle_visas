@@ -1,96 +1,23 @@
 import pandas as pd
-#import matplotlib.pyplot as plt
 from sklearn import tree
 from sklearn import ensemble
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
-#import graphviz 
-#~ from difflib import get_close_matches
 from sklearn.neural_network import MLPClassifier
 import inspect 
-
-# helper function to conver to yearly wage
-def convert( pair ):
-	a = pair[0]
-	b = pair[1]
-	if a == 'yr' :
-		return b
-	else :
-		return b*hr_to_year
 
 # number integers to round some outputs
 min_leaf_samples = 100 # interesting: if this is large then the tree only has 'certified' nodes which gives 85% accuracy
 max_leaf_nodes = 1000
 criterion = "entropy" # "gini"
-#~ criterion = "gini"
-def single_tree():
-	# Define and run tree classifier
-	clf = tree.DecisionTreeClassifier(min_samples_leaf = min_leaf_samples, criterion = criterion, max_leaf_nodes = max_leaf_nodes) #max_leaf_nodes 
-	clf = clf.fit(train_x, train_y)
-	predict = clf.predict(train_x)
-	train_accuracy = accuracy_score(train_y, predict)
 
-	# check against validation set
-	predict = clf.predict(test_x)
-	test_accuracy = accuracy_score(test_y, predict)
-
-	print "Train/test accuracy:"
-	print round(train_accuracy,n_round), round(test_accuracy, n_round) 
-	print "Number of nodes in tree"
-	print clf.tree_.node_count
-	#dot_data = tree.export_graphviz(clf, out_file=None, feature_names=one_hot_data.columns, class_names=out, filled=True, rounded=True,  special_characters=True, leaves_parallel = True) 
-	#graph = graphviz.Source(dot_data) 
-	#graph.render("single_tree")
-
-def forest():
-	# Define and run tree classifier
-	clf = ensemble.RandomForestClassifier(n_jobs  = -1, n_estimators=10 ,min_samples_leaf = min_leaf_samples, criterion = criterion, max_leaf_nodes = max_leaf_nodes) #max_leaf_nodes 
-	clf = clf.fit(train_x, train_y)
-	predict = clf.predict(train_x)
-	train_accuracy = accuracy_score(train_y, predict)
-
-	# check against validation set
-	predict = clf.predict(test_x)
-	test_accuracy = accuracy_score(test_y, predict)
-
-	print "Train/test accuracy:"
-	print round(train_accuracy,n_round), round(test_accuracy, n_round)     
-	
-def boosted():
-	# Define and run tree classifier
-	clf = ensemble.GradientBoostingClassifier( n_estimators = 100, min_samples_leaf = min_leaf_samples, max_leaf_nodes = max_leaf_nodes ) #max_leaf_nodes  loss = 'exponential',
-	clf = clf.fit(train_x, train_y)
-	predict = clf.predict(train_x)
-	train_accuracy = accuracy_score(train_y, predict)
-
-	# check against validation set
-	predict = clf.predict(test_x)
-	test_accuracy = accuracy_score(test_y, predict)
-
-	print "Train/test accuracy:"
-	print round(train_accuracy,n_round), round(test_accuracy, n_round)   
-	 
-def ada_boosted():
-	# Define and run tree classifier
-	clf = ensemble.AdaBoostClassifier( n_estimators=100 )
-	clf = clf.fit(train_x, train_y)
-	predict = clf.predict(train_x)
-	train_accuracy = accuracy_score(train_y, predict)
-
-	# check against validation set
-	predict = clf.predict(test_x)
-	test_accuracy = accuracy_score(test_y, predict)
-
-	print "Train/test accuracy:"
-	print round(train_accuracy,n_round), round(test_accuracy, n_round)   
-	 
 n_round = 4
 
 
 # MAIN
 # Get data but only keep certified and denied outcomes 
 # (future work could possibly include the merger of the other outcomes, i.e. certified expired as certified)
-data = pd.read_csv("data/us_perm_visas.csv", nrows = 150000,low_memory = False) #
+data = pd.read_csv("data/us_perm_visas.csv", nrows = 5000,low_memory = False) #
 data = data[data['case_status'].isin(['Certified', 'Denied'])]
 pd.Series(data.columns).to_csv("all_cols.csv")
 
@@ -141,10 +68,10 @@ out = data['case_status']
 one_hot_data = pd.get_dummies(inp,drop_first=True)
 train_x, test_x, train_y, test_y = train_test_split(one_hot_data, out,test_size = 0.25)
 ntrain = len(train_x)
-#~ print("\n")
-#~ print("--Single tree classifier--")
+print("\n")
+print("--Single tree classifier--")
 #~ ######### SINGLE TREE CLASSIFIER
-#~ single_tree()
+single_tree()
 #~ print("\n")
 
 #~ print("--Forest classifier--")
