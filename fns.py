@@ -1,9 +1,12 @@
 import pandas as pd
 from sklearn import tree
 from sklearn import ensemble
+from sklearn import linear_model
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
+import numpy as np
 import inspect 
 hr_to_year = 2080
 # number integers to round some outputs
@@ -29,12 +32,12 @@ def fit_model( clf, data_dict ):
 	test_y = data_dict['test_y']
 
 	clf = clf.fit(train_x, train_y)
-	predict = clf.predict(train_x)
-	train_accuracy = accuracy_score(train_y, predict)
+	train_predict = clf.predict(train_x)
+	train_accuracy = accuracy_score(train_y, train_predict)
 
 	# check against validation set
-	predict = clf.predict(test_x)
-	test_accuracy = accuracy_score(test_y, predict)
+	test_predict = clf.predict(test_x)
+	test_accuracy = accuracy_score(test_y, test_predict)
 
 	print "Train/test accuracy:"
 	print round(train_accuracy,n_round), round(test_accuracy, n_round) 
@@ -47,9 +50,9 @@ def single_tree(data_dict, min_leaf_samples, max_leaf_nodes ):
 	print "Number of nodes in tree"
 	print clf.tree_.node_count
 
-def forest( data_dict, min_leaf_samples, max_leaf_nodes, n_estimators ):
+def forest( data_dict, min_leaf_samples, max_leaf_nodes, max_depth, n_estimators ):
 	# Define and run tree classifier
-	clf = ensemble.RandomForestClassifier(n_jobs  = -1, n_estimators=n_estimators ,min_samples_leaf = min_leaf_samples,  max_leaf_nodes = max_leaf_nodes) #max_leaf_nodes 
+	clf = ensemble.RandomForestClassifier(n_jobs  = -1, n_estimators=n_estimators ,min_samples_leaf = min_leaf_samples, max_depth=max_depth,  max_leaf_nodes = max_leaf_nodes) #max_leaf_nodes 
 	fit_model(clf, data_dict)   
 	
 def boosted( data_dict, min_leaf_samples, max_leaf_nodes, n_estimators  ):
@@ -57,8 +60,11 @@ def boosted( data_dict, min_leaf_samples, max_leaf_nodes, n_estimators  ):
 	clf = ensemble.GradientBoostingClassifier( n_estimators = n_estimators, min_samples_leaf = min_leaf_samples, max_leaf_nodes = max_leaf_nodes ) #max_leaf_nodes  loss = 'exponential',
 	fit_model(clf, data_dict)
 	 
-def ada_boosted( data_dict, n_estimators  ):
+def ada_boosted( data_dict, max_depth, n_estimators  ):
 	# Define and run tree classifier
-	clf = ensemble.AdaBoostClassifier( n_estimators=n_estimators )
+	clf = ensemble.AdaBoostClassifier(tree.DecisionTreeClassifier(max_depth=max_depth), n_estimators=n_estimators )
 	fit_model(clf, data_dict)
-	 
+
+def logit( data_dict ):
+	clf = linear_model.LogisticRegression(random_state=0, solver='lbfgs',multi_class='multinomial', n_jobs = -1)
+	fit_model(clf, data_dict)
