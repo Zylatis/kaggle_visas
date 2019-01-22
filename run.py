@@ -9,6 +9,7 @@ from scipy import sparse
 from sklearn.preprocessing import LabelEncoder
 import fns
 
+
 # number integers to round some outputs
 n_round = 4
 # plot cumulative certified distribution with row number
@@ -19,7 +20,10 @@ print "##Getting data:##"
 data = pd.read_csv("data/us_perm_visas.csv", low_memory = False)
 print data['case_status'].value_counts()
 data['case_status'] = data['case_status'].str.replace( "Certified-Expired","Certified")
-
+print "MEM:"
+print data.memory_usage(deep=True).sum()/(10.**9)
+#~ print data.dtypes
+print("")
 # toggle if to replace withdrawn with denied
 #~ data['case_status'] = data['case_status'].str.replace( "Withdrawn","Denied")
 data = data[data['case_status'].isin(['Certified', 'Denied'])]
@@ -32,6 +36,7 @@ sorted_dates = data.sort_values(by = ['decision_date_elapsed'])['decision_date_e
 start = sorted_dates.iloc[0]
 
 data['decision_date_elapsed'] = data['decision_date_elapsed'].subtract( [start]*len(data) ).apply(lambda x: x.days)
+data['employer_state'] = data['employer_state'].map(fns.us_state_abbrev_cap)
 
 pd.Series(data.columns).to_csv("all_cols.csv")
 cols = data.columns
@@ -59,13 +64,13 @@ data['annual_salary'] = map(fns.convert, temp)
 
 # add global info (hot tip from kaggle comment) regarding country success rate
 # (is it worth replacing country with this alltogether?)
-countries = list(set(data['country_of_citizenship']))
-country_cert_rate = {}
-for country in countries:
-	country_data = data[data['country_of_citizenship'] == country ]['case_status']
-	n_cert = len(country_data[country_data == 1.])
-	country_cert_rate[country] = n_cert/(1.* len(country_data))
-data['country_cert_rate'] = data['country_of_citizenship'].map(country_cert_rate)
+#~ countries = list(set(data['country_of_citizenship']))
+#~ country_cert_rate = {}
+#~ for country in countries:
+	#~ country_data = data[data['country_of_citizenship'] == country ]['case_status']
+	#~ n_cert = len(country_data[country_data == 1.])
+	#~ country_cert_rate[country] = n_cert/(1.* len(country_data))
+#~ data['country_cert_rate'] = data['country_of_citizenship'].map(country_cert_rate)
 
 drop_cols = [
 'naics_2007_us_title',
@@ -96,9 +101,25 @@ columns = data.columns
 print "##Cols being used:##"
 for col in data.columns:
 	print col
+	if type(data[col][0]) == str:
+		data[col] = data[col].str.upper()
 print ""
 
-#~ print data.iloc[0]
+
+print "MEM:"
+print data.memory_usage(deep=True).sum()/(10.**9)
+
+data['employer_name'] = pd.Series(data['employer_name']).str.replace(".", '').str.replace(",", '').str.replace(" ", '')
+pd.Series(data['employer_name'].value_counts()).to_csv("companies.csv")
+data.to_csv("pruned_data.csv")
+#~ exit(0)
+# See how we're doing for categoricals
+for col in columns:
+	if type(data[col][0]) == str:
+		bit = list(set(data[col]))
+		print( col, len(bit) )
+		
+print("---")
 #~ exit(0)
 # drop the target variable from training set
 inp = data.drop('case_status',axis = 1) 
@@ -106,8 +127,8 @@ pd.Series(data.columns).to_csv("used_cols.csv")
 
 # define target variable
 print "##Re-jig target variables##"
-data.loc[data.case_status == 'Certified', 'case_status'] = 1.
-data.loc[data.case_status == 'Denied', 'case_status'] = 0.
+data.loc[data.case_status == 'CERTIFIED', 'case_status'] = 1.
+data.loc[data.case_status == 'DENIED', 'case_status'] = 0.
 out = data['case_status'].astype('float')
 
 #~ print inp['application_type'].value_counts()
@@ -168,31 +189,31 @@ print round( len(test_y[test_y == 1])/(1.*len(test_y)), n_round)
 min_leaf_samples = 1 # interesting: if this is large then the tree only has 'certified' nodes which gives 85% accuracy
 max_leaf_nodes = None
 max_depth = 20
-#~ print("")
-#~ print("--Single tree classifier--")
-#~ ######### SINGLE TREE CLASSIFIER
-#~ fns.single_tree(data_dict, min_leaf_samples, max_leaf_nodes, max_depth )
-#~ print("\n")
+print("")
+print("--Single tree classifier--")
+######### SINGLE TREE CLASSIFIER
+fns.single_tree(data_dict, min_leaf_samples, max_leaf_nodes, max_depth )
+print("\n")
 
-print("--Forest classifier--100")
-######### RANDOM FOREST TREE CLASSIFIER
-fns.forest( data_dict, min_leaf_samples, max_leaf_nodes,max_depth, 100 )
+#~ print("--Forest classifier--100")
+#~ ######### RANDOM FOREST TREE CLASSIFIER
+#~ fns.forest( data_dict, min_leaf_samples, max_leaf_nodes,max_depth, 100 )
 
 print("--Forest classifier--500")
 ######### RANDOM FOREST TREE CLASSIFIER
 fns.forest( data_dict, min_leaf_samples, max_leaf_nodes,max_depth, 500 )
 
 
-#~ print("")
-#~ print("--Gradient boosted classifier--")
-#~ ######### Boosted tree
-#~ fns.boosted(data_dict, min_leaf_samples, max_leaf_nodes, max_depth, 100 )
+print("")
+print("--Gradient boosted classifier--")
+######### Boosted tree
+fns.boosted(data_dict, min_leaf_samples, max_leaf_nodes, max_depth, 100 )
 
 
-#~ print("")
-#~ print("--Ada boosted classifier--")
-#~ ######### Boosted tree
-#~ fns.ada_boosted(data_dict, max_depth, 50)
+print("")
+print("--Ada boosted classifier--")
+######### Boosted tree
+fns.ada_boosted(data_dict, max_depth, 50)
 
 print("")
 print("--logit--")

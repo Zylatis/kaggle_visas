@@ -15,11 +15,14 @@ n_round = 4
 # helper function to conver to yearly wage
 def convert( pair ):
 	a = pair[0]
-	b = pair[1]
-	if a == 'yr' :
-		return b
+	if type(pair[1]) == str:
+		b = float(pair[1].replace(',', ''))
+	else:
+		b = pair[1]
+	if a == 'YR' :
+		return float(b)
 	else :
-		return b*hr_to_year
+		return float(b*hr_to_year)
 		
 	
 # takes in classifier model, trains, gives accuracy
@@ -43,21 +46,21 @@ def fit_model( clf, data_dict ):
 	print round(train_accuracy,n_round), round(test_accuracy, n_round) 
 
 
-def single_tree(data_dict, min_leaf_samples, max_leaf_nodes ):
+def single_tree(data_dict, min_leaf_samples, max_leaf_nodes, max_depth ):
 	# Define and run tree classifier
-	clf = tree.DecisionTreeClassifier(min_samples_leaf = min_leaf_samples, max_leaf_nodes = max_leaf_nodes) #max_leaf_nodes 
+	clf = tree.DecisionTreeClassifier(min_samples_leaf = min_leaf_samples, max_leaf_nodes = max_leaf_nodes, max_depth=max_depth, class_weight  = 'balanced') #max_leaf_nodes 
 	fit_model(clf, data_dict)
 	print "Number of nodes in tree"
 	print clf.tree_.node_count
 
 def forest( data_dict, min_leaf_samples, max_leaf_nodes, max_depth, n_estimators ):
 	# Define and run tree classifier
-	clf = ensemble.RandomForestClassifier(n_jobs  = -1, n_estimators=n_estimators ,min_samples_leaf = min_leaf_samples, max_depth=max_depth,  max_leaf_nodes = max_leaf_nodes) #max_leaf_nodes 
+	clf = ensemble.RandomForestClassifier(n_jobs  = -1, n_estimators=n_estimators ,min_samples_leaf = min_leaf_samples, max_depth=max_depth,  max_leaf_nodes = max_leaf_nodes, class_weight  = 'balanced') #max_leaf_nodes 
 	fit_model(clf, data_dict)   
 	
-def boosted( data_dict, min_leaf_samples, max_leaf_nodes, n_estimators  ):
+def boosted( data_dict, min_leaf_samples, max_leaf_nodes, max_depth, n_estimators  ):
 	# Define and run tree classifier
-	clf = ensemble.GradientBoostingClassifier( n_estimators = n_estimators, min_samples_leaf = min_leaf_samples, max_leaf_nodes = max_leaf_nodes ) #max_leaf_nodes  loss = 'exponential',
+	clf = ensemble.GradientBoostingClassifier( n_estimators = n_estimators, min_samples_leaf = min_leaf_samples, max_depth = max_depth, max_leaf_nodes = max_leaf_nodes) #max_leaf_nodes  loss = 'exponential',
 	fit_model(clf, data_dict)
 	 
 def ada_boosted( data_dict, max_depth, n_estimators  ):
@@ -66,5 +69,65 @@ def ada_boosted( data_dict, max_depth, n_estimators  ):
 	fit_model(clf, data_dict)
 
 def logit( data_dict ):
-	clf = linear_model.LogisticRegression(random_state=0, solver='lbfgs',multi_class='multinomial', n_jobs = -1)
+	clf = linear_model.LogisticRegression(random_state=0, solver='lbfgs', n_jobs = -1, max_iter  = 500)
 	fit_model(clf, data_dict)
+
+
+us_state_abbrev = {
+    'Alabama': 'AL',
+    'Alaska': 'AK',
+    'Arizona': 'AZ',
+    'Arkansas': 'AR',
+    'California': 'CA',
+    'Colorado': 'CO',
+    'Connecticut': 'CT',
+    'Delaware': 'DE',
+    'Florida': 'FL',
+    'Georgia': 'GA',
+    'Hawaii': 'HI',
+    'Idaho': 'ID',
+    'Illinois': 'IL',
+    'Indiana': 'IN',
+    'Iowa': 'IA',
+    'Kansas': 'KS',
+    'Kentucky': 'KY',
+    'Louisiana': 'LA',
+    'Maine': 'ME',
+    'Maryland': 'MD',
+    'Massachusetts': 'MA',
+    'Michigan': 'MI',
+    'Minnesota': 'MN',
+    'Mississippi': 'MS',
+    'Missouri': 'MO',
+    'Montana': 'MT',
+    'Nebraska': 'NE',
+    'Nevada': 'NV',
+    'New Hampshire': 'NH',
+    'New Jersey': 'NJ',
+    'New Mexico': 'NM',
+    'New York': 'NY',
+    'North Carolina': 'NC',
+    'North Dakota': 'ND',
+    'Ohio': 'OH',
+    'Oklahoma': 'OK',
+    'Oregon': 'OR',
+    'Pennsylvania': 'PA',
+    'Rhode Island': 'RI',
+    'South Carolina': 'SC',
+    'South Dakota': 'SD',
+    'Tennessee': 'TN',
+    'Texas': 'TX',
+    'Utah': 'UT',
+    'Vermont': 'VT',
+    'Virginia': 'VA',
+    'Washington': 'WA',
+    'West Virginia': 'WV',
+    'Wisconsin': 'WI',
+    'Wyoming': 'WY',
+    
+}
+
+us_state_abbrev_cap = {}
+for k,v in us_state_abbrev.iteritems():
+	us_state_abbrev_cap[k.upper()] = v 
+	us_state_abbrev_cap[v] = v 
