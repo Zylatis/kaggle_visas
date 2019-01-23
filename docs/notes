@@ -28,3 +28,7 @@ PCA
 class weight = balanced scikitlearn 
 feature leak split
 flask app
+
+
+try look at employer vs case status
+definitely look at case status vs salary (look at salary + width of denied/approved)
