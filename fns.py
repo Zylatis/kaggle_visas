@@ -21,11 +21,6 @@ def convert( pair ):
 		b = pair[1]
 		
 	return b*salary_conversion[a]
-	#~ if a == 'YR' or a == 'yr':
-		#~ return float(b)
-	#~ else :
-		#~ return float(b*hr_to_year)
-		
 	
 # takes in classifier model, trains, gives accuracy
 # classifier specific calcs need to be done outside this, but the model should be returned
@@ -70,8 +65,8 @@ def ada_boosted( data_dict, max_depth, n_estimators  ):
 	clf = ensemble.AdaBoostClassifier(tree.DecisionTreeClassifier(max_depth=max_depth), n_estimators=n_estimators )
 	fit_model(clf, data_dict)
 
-def logit( data_dict ):
-	clf = linear_model.LogisticRegression(random_state=0, solver='lbfgs', n_jobs = -1, max_iter  = 500)
+def logit( data_dict, weights = None ):
+	clf = linear_model.LogisticRegression(random_state=0, solver='lbfgs', n_jobs = -1, max_iter  = 500, class_weight = weights)
 	fit_model(clf, data_dict)
 
 

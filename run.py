@@ -89,7 +89,8 @@ drop_cols = [
 'wage_offer_from_9089',
 'employer_address_1',
 "pw_job_title_9089",
-"decision_date"] #"wage_offer_unit_of_pay_9089"	
+"decision_date",
+"decision_year"] #"wage_offer_unit_of_pay_9089"	
 
 print data['case_status'].value_counts()
 
@@ -192,7 +193,7 @@ max_depth = 20
 print("")
 print("--Single tree classifier--")
 ######### SINGLE TREE CLASSIFIER
-fns.single_tree(data_dict, min_leaf_samples, max_leaf_nodes, max_depth )
+#~ fns.single_tree(data_dict, min_leaf_samples, max_leaf_nodes, max_depth )
 print("\n")
 
 #~ print("--Forest classifier--100")
@@ -201,7 +202,7 @@ print("\n")
 
 print("--Forest classifier--500")
 ######### RANDOM FOREST TREE CLASSIFIER
-fns.forest( data_dict, min_leaf_samples, max_leaf_nodes,max_depth, 500 )
+#~ fns.forest( data_dict, min_leaf_samples, max_leaf_nodes,max_depth, 500 )
 
 
 #~ print("")
@@ -217,5 +218,8 @@ fns.forest( data_dict, min_leaf_samples, max_leaf_nodes,max_depth, 500 )
 
 print("")
 print("--logit--")
-######### Boosted tree
 fns.logit(data_dict)
+
+print("")
+print("--logit--")
+fns.logit(data_dict, 'balanced')

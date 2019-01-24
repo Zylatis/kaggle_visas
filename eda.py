@@ -4,8 +4,8 @@ from scipy.stats import pearsonr
 import scipy.stats as ss
 import numpy as np
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
 def cramers_corrected_stat(confusion_matrix):
     """ calculate Cramers V statistic for categorial-categorial association.
         uses correction from Bergsma and Wicher, 
@@ -23,7 +23,7 @@ def cramers_corrected_stat(confusion_matrix):
 
 
 print "##Getting data:##"
-data = pd.read_csv("data/us_perm_visas.csv",  low_memory = False)
+data = pd.read_csv("data/us_perm_visas.csv",  nrows = 100000, low_memory = False)
 print data['case_status'].value_counts()
 data['case_status'] = data['case_status'].str.replace( "Certified-Expired","Certified")
 print("")
@@ -94,7 +94,7 @@ print ""
 data['employer_name'] = pd.Series(data['employer_name']).str.replace(".", '').str.replace(",", '').str.replace(" ", '')
 data['pw_soc_title'] = pd.Series(data['pw_soc_title']).str.replace(".", '').str.replace(",", '').str.replace(" ", '')
 pd.Series(data['employer_name'].value_counts()).to_csv("companies.csv")
-data.to_csv("pruned_data.csv")
+data.to_csv("pruned_data_eda.csv")
 
 one_hot_cat = []
 label_cat = []
