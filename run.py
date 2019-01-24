@@ -17,7 +17,7 @@ n_round = 4
 # Get data but only keep certified and denied outcomes 
 # (future work could possibly include the merger of the other outcomes, i.e. certified expired as certified)
 print "##Getting data:##"
-data = pd.read_csv("data/us_perm_visas.csv", low_memory = False, nrows = 1500)
+data = pd.read_csv("data/us_perm_visas.csv", low_memory = False)
 print data['case_status'].value_counts()
 data['case_status'] = data['case_status'].str.replace( "Certified-Expired","Certified")
 print "MEM:"
@@ -204,16 +204,16 @@ print("--Forest classifier--500")
 fns.forest( data_dict, min_leaf_samples, max_leaf_nodes,max_depth, 500 )
 
 
-print("")
-print("--Gradient boosted classifier--")
-######### Boosted tree
-fns.boosted(data_dict, min_leaf_samples, max_leaf_nodes, max_depth, 100 )
+#~ print("")
+#~ print("--Gradient boosted classifier--")
+#~ ######### Boosted tree
+#~ fns.boosted(data_dict, min_leaf_samples, max_leaf_nodes, max_depth, 100 )
 
 
-print("")
-print("--Ada boosted classifier--")
-######### Boosted tree
-fns.ada_boosted(data_dict, max_depth, 50)
+#~ print("")
+#~ print("--Ada boosted classifier--")
+#~ ######### Boosted tree
+#~ fns.ada_boosted(data_dict, max_depth, 50)
 
 print("")
 print("--logit--")

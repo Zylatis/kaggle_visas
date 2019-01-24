@@ -19,11 +19,11 @@ def cramers_corrected_stat(confusion_matrix):
     phi2corr = max(0, phi2 - ((k-1)*(r-1))/(n-1))    
     rcorr = r - ((r-1)**2)/(n-1)
     kcorr = k - ((k-1)**2)/(n-1)
-    return np.sqrt(phi2corr / min( (kcorr-1), (rcorr-1)))
+    return np.sqrt(phi2corr / ( min( (kcorr-1), (rcorr-1))) )
 
 
 print "##Getting data:##"
-data = pd.read_csv("data/us_perm_visas.csv", low_memory = False, nrows = 100000)
+data = pd.read_csv("data/us_perm_visas.csv",  low_memory = False)
 print data['case_status'].value_counts()
 data['case_status'] = data['case_status'].str.replace( "Certified-Expired","Certified")
 print("")
@@ -64,7 +64,7 @@ drop_cols = [
 #~ 'pw_soc_title',
 'job_info_work_state', # try to find if this is indeed redundant with employer state
 'job_info_work_city', # as above with city
-'pw_unit_of_pay_9089',
+#~ 'pw_unit_of_pay_9089',
 'pw_amount_9089',
 'wage_offer_unit_of_pay_9089',
 'employer_postal_code',
@@ -112,12 +112,6 @@ for col in columns:
 			one_hot_cat.append( col )
 
 n_features = len(data.columns)
-#~ for el in label_cat:
-	#~ print el
-	
-#~ print "----"
-#~ for el in one_hot_cat:
-	#~ print el
 corr_matt = []
 for col1 in data.columns:
 	row = []
@@ -126,7 +120,7 @@ for col1 in data.columns:
 		row.append( cramers_corrected_stat(confusion_matrix))
 	corr_matt.append(row)
 
-matplotlib.rcParams.update({'font.size': 7})
+matplotlib.rcParams.update({'font.size': 6})
 fig, ax = plt.subplots()
 im = ax.imshow(corr_matt)
 
@@ -134,9 +128,9 @@ im = ax.imshow(corr_matt)
 ax.set_xticks(np.arange(n_features))
 ax.set_yticks(np.arange(n_features))
 # ... and label them with the respective list entries
-ax.set_xticklabels(data.columns)
-ax.set_yticklabels(data.columns)
-
+ax.set_xticklabels(data.columns, fontsize = 9)
+ax.set_yticklabels(data.columns,fontsize = 9)
+#~ ax.ticklabel_format(style='plain')
 # Rotate the tick labels and set their alignment.
 plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
@@ -147,6 +141,23 @@ for i in range(n_features):
                        ha="center", va="center", color="w")
 
 
-fig.tight_layout()
-#~ plt.show()
+fig.tight_layout(rect=[0, 0.00, 1, .9])
+
+plt.title("Cramer's correlation of remaining features", fontdict = {'fontsize':15,'weight': 'bold'})
+
 plt.savefig("corrs.png",dpi = 300)
+fig.clf()
+cert_income = data[data['case_status']=='CERTIFIED']['annual_salary']/1000.
+den_income = data[data['case_status']=='DENIED']['annual_salary']/1000.
+n, bins, patches = plt.hist(x=cert_income, bins='auto', color='red', alpha=0.7, rwidth=0.85)
+n, bins, patches = plt.hist(x=den_income, bins='auto', color='#0504aa', alpha=0.7, rwidth=0.85)
+plt.xlim(right = 200)
+plt.xlim(left = 0)
+#~ plt.show()
+plt.title("Salary split for certified (red) and denied (blue)", fontdict = {'fontsize':15,'weight': 'bold'})
+plt.xlabel("Salary (thousands)",fontsize = 11)
+plt.ylabel("Number of cases",fontsize = 11)
+plt.savefig("salary.png",dpi = 300)
+
+print cert_income.describe()
+print den_income.describe()

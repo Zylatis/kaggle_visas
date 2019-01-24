@@ -11,7 +11,7 @@ import inspect
 hr_to_year = 2080
 # number integers to round some outputs
 n_round = 4
-
+salary_conversion = {'yr' : 1, 'hr' : 2080, 'bi' : 26, 'mth' : 12, 'wk' : 52, "Hour":2080, "Year" : 1, "Week" : 52, "Month": 12, "Bi-Weekly": 26 }
 # helper function to conver to yearly wage
 def convert( pair ):
 	a = pair[0]
@@ -19,10 +19,12 @@ def convert( pair ):
 		b = float(pair[1].replace(',', ''))
 	else:
 		b = pair[1]
-	if a == 'YR' :
-		return float(b)
-	else :
-		return float(b*hr_to_year)
+		
+	return b*salary_conversion[a]
+	#~ if a == 'YR' or a == 'yr':
+		#~ return float(b)
+	#~ else :
+		#~ return float(b*hr_to_year)
 		
 	
 # takes in classifier model, trains, gives accuracy
