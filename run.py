@@ -9,7 +9,7 @@ from dat import *
 # Get data but only keep certified and denied outcomes 
 # (future work could possibly include the merger of the other outcomes, i.e. certified expired as certified)
 print "##Getting data:##"
-data = pd.read_csv("data/us_perm_visas.csv", nrows = 50000, low_memory = False)
+data = pd.read_csv("data/us_perm_visas.csv",nrows = 1500, low_memory = False)
 print data['case_status'].value_counts()
 data['case_status'] = data['case_status'].str.replace( "Certified-Expired","Certified")
 print "MEM:"
@@ -134,43 +134,21 @@ data_dict = { 'train_x' : scaled_train_x, 'test_x' : scaled_test_x, 'train_y' : 
 print("##Fraction of certified in each set:##")
 print round( len(train_y[train_y == 1])/(1.*len(train_y)), n_round)
 print round( len(test_y[test_y == 1])/(1.*len(test_y)), n_round)
-#~ exit(0)
 print("\n")
 
-min_leaf_samples = 1 # interesting: if this is large then the tree only has 'certified' nodes which gives 85% accuracy
-max_leaf_nodes = None
-max_depth = 20
 
-
-######### SINGLE TREE CLASSIFIER
-print("--Single tree classifier--")
+print("-------------------Single tree classifier-------------------")
 fns.single_tree(data_dict, min_leaf_samples, max_leaf_nodes, max_depth )
 print("\n")
 
-print("--Single tree classifier--balanced")
-fns.single_tree(data_dict, min_leaf_samples, max_leaf_nodes, max_depth,'balanced'  )
+print("-------------------Forest classifier-------------------")
+fns.forest( data_dict )
 print("\n")
 
-
-######### RANDOM FOREST TREE CLASSIFIER
-print("--Forest classifier--500")
-fns.forest( data_dict, min_leaf_samples, max_leaf_nodes,max_depth, 500 )
-print("\n")
-
-print("--Forest classifier--500--balanced")
-fns.forest( data_dict, min_leaf_samples, max_leaf_nodes,max_depth, 500, 'balanced' )
-print("\n")
-
-######### Boosted tree
-print("--Gradient boosted classifier--")
-fns.boosted(data_dict, min_leaf_samples, max_leaf_nodes, max_depth, 100 )
-print("\n")
-
-######### Logistic
-print("--logit--")
+print("-------------------Logit classifier-------------------")
 fns.logit(data_dict)
 print("\n")
 
-print("--logit--balanced")
-fns.logit(data_dict, 'balanced')
+print("-------------------NN classifier-------------------")
+fns.NN(data_dict)
 print("\n")
