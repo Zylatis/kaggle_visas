@@ -1,23 +1,15 @@
 import pandas as pd
-from sklearn import tree
-from sklearn import ensemble
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-from sklearn.neural_network import MLPClassifier
-from sklearn import preprocessing
-from scipy import sparse
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 import fns
+from dat import *
 
-
-# number integers to round some outputs
-n_round = 4
 # plot cumulative certified distribution with row number
 # MAIN
 # Get data but only keep certified and denied outcomes 
 # (future work could possibly include the merger of the other outcomes, i.e. certified expired as certified)
 print "##Getting data:##"
-data = pd.read_csv("data/us_perm_visas.csv", low_memory = False)
+data = pd.read_csv("data/us_perm_visas.csv", nrows = 50000, low_memory = False)
 print data['case_status'].value_counts()
 data['case_status'] = data['case_status'].str.replace( "Certified-Expired","Certified")
 print "MEM:"
@@ -62,16 +54,6 @@ print len(cols), len(data.columns), "\n"
 temp =  [list(a) for a in zip(data['pw_unit_of_pay_9089'] , data['pw_amount_9089'])]
 data['annual_salary'] = map(fns.convert, temp)
 
-# add global info (hot tip from kaggle comment) regarding country success rate
-# (is it worth replacing country with this alltogether?)
-#~ countries = list(set(data['country_of_citizenship']))
-#~ country_cert_rate = {}
-#~ for country in countries:
-	#~ country_data = data[data['country_of_citizenship'] == country ]['case_status']
-	#~ n_cert = len(country_data[country_data == 1.])
-	#~ country_cert_rate[country] = n_cert/(1.* len(country_data))
-#~ data['country_cert_rate'] = data['country_of_citizenship'].map(country_cert_rate)
-
 drop_cols = [
 'naics_2007_us_title',
 'pw_soc_title',
@@ -105,9 +87,7 @@ for col in data.columns:
 	if type(data[col][0]) == str:
 		data[col] = data[col].str.upper()
 print ""
-
-
-print "MEM:"
+print "Memory usage:"
 print data.memory_usage(deep=True).sum()/(10.**9)
 
 data['employer_name'] = pd.Series(data['employer_name']).str.replace(".", '').str.replace(",", '').str.replace(" ", '')
@@ -132,50 +112,20 @@ data.loc[data.case_status == 'CERTIFIED', 'case_status'] = 1.
 data.loc[data.case_status == 'DENIED', 'case_status'] = 0.
 out = data['case_status'].astype('float')
 
-#~ print inp['application_type'].value_counts()
-#~ print inp['class_of_admission'].value_counts()
-#~ print inp['country_of_citizenship'].value_counts()
 
-#~ print inp['employer_city'].value_counts().sort_index()
-#~ print inp['employer_name'].value_counts().sort_index()
-#~ print inp['employer_state'].value_counts().sort_index()
-
-#~ print inp['pw_source_name_9089'].value_counts().sort_index()
-#~ print inp['us_economic_sector'].value_counts().sort_index()
-#~ print data['pw_soc_code'].value_counts()
-
-#~ exit(0)
-
-print "##Do one-hot encoding of catagoricals##"
-# Do one-hot transformation on the categorical data. 
-# This is super cool and basically a way to make sure we have binary values for the categories
-# rather than label by number, which will bugger up the data/scaling
-#~ one_hot_data = sparse.csr_matrix( pd.get_dummies(inp,drop_first=True).values )
-
-#~ oh_enc = preprocessing.OneHotEncoder(handle_unknown='ignore')
-#~ label_enc = preprocessing.LabelEncoder()
-
-#~ oh_data = oh_enc.fit_transform(inp)
-#~ label_data = label_enc.fit_transform(inp)
-
-
+print("##Do encoding of catagoricals##")
 for col in inp.columns:
 	enc = LabelEncoder()
 	enc.fit(inp[col])
 	inp[col] = enc.transform(inp[col])
 
-#~ exit(0)
-print "##Split + shuffle##"
-
+print("##Split + shuffle##")
 train_x, test_x, train_y, test_y = train_test_split(inp, out,test_size = 0.25, random_state = 1)
-
-#~ train_x = train_x.todense()
-#~ test_x = test_x.todense()
 ntrain = len(train_x)
 
-print "##To-dense + scale ##"
+print "## Scale training data using StandardScaler() ##"
 # Scale to gaussian distribution, as defined *only* on train set
-scaler = preprocessing.StandardScaler().fit(train_x)
+scaler = StandardScaler().fit(train_x)
 scaled_train_x = scaler.transform(train_x)
 scaled_test_x = scaler.transform(test_x)
 
@@ -185,41 +135,42 @@ print("##Fraction of certified in each set:##")
 print round( len(train_y[train_y == 1])/(1.*len(train_y)), n_round)
 print round( len(test_y[test_y == 1])/(1.*len(test_y)), n_round)
 #~ exit(0)
+print("\n")
 
-# Tree parameters
 min_leaf_samples = 1 # interesting: if this is large then the tree only has 'certified' nodes which gives 85% accuracy
 max_leaf_nodes = None
 max_depth = 20
-print("")
-print("--Single tree classifier--")
+
+
 ######### SINGLE TREE CLASSIFIER
-#~ fns.single_tree(data_dict, min_leaf_samples, max_leaf_nodes, max_depth )
+print("--Single tree classifier--")
+fns.single_tree(data_dict, min_leaf_samples, max_leaf_nodes, max_depth )
 print("\n")
 
-#~ print("--Forest classifier--100")
-#~ ######### RANDOM FOREST TREE CLASSIFIER
-#~ fns.forest( data_dict, min_leaf_samples, max_leaf_nodes,max_depth, 100 )
+print("--Single tree classifier--balanced")
+fns.single_tree(data_dict, min_leaf_samples, max_leaf_nodes, max_depth,'balanced'  )
+print("\n")
 
-print("--Forest classifier--500")
+
 ######### RANDOM FOREST TREE CLASSIFIER
-#~ fns.forest( data_dict, min_leaf_samples, max_leaf_nodes,max_depth, 500 )
+print("--Forest classifier--500")
+fns.forest( data_dict, min_leaf_samples, max_leaf_nodes,max_depth, 500 )
+print("\n")
 
+print("--Forest classifier--500--balanced")
+fns.forest( data_dict, min_leaf_samples, max_leaf_nodes,max_depth, 500, 'balanced' )
+print("\n")
 
-#~ print("")
-#~ print("--Gradient boosted classifier--")
-#~ ######### Boosted tree
-#~ fns.boosted(data_dict, min_leaf_samples, max_leaf_nodes, max_depth, 100 )
+######### Boosted tree
+print("--Gradient boosted classifier--")
+fns.boosted(data_dict, min_leaf_samples, max_leaf_nodes, max_depth, 100 )
+print("\n")
 
-
-#~ print("")
-#~ print("--Ada boosted classifier--")
-#~ ######### Boosted tree
-#~ fns.ada_boosted(data_dict, max_depth, 50)
-
-print("")
+######### Logistic
 print("--logit--")
 fns.logit(data_dict)
+print("\n")
 
-print("")
-print("--logit--")
+print("--logit--balanced")
 fns.logit(data_dict, 'balanced')
+print("\n")
