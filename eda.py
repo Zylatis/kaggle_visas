@@ -4,31 +4,18 @@ from scipy.stats import pearsonr
 import scipy.stats as ss
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+import copy
+# matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-def cramers_corrected_stat(confusion_matrix):
-    """ calculate Cramers V statistic for categorial-categorial association.
-        uses correction from Bergsma and Wicher, 
-        Journal of the Korean Statistical Society 42 (2013): 323-328
-    """
-    chi2 = ss.chi2_contingency(confusion_matrix)[0]
-    n = confusion_matrix.sum().sum()
-    phi2 = chi2/n
-    r,k = confusion_matrix.shape
-    
-    phi2corr = max(0, phi2 - ((k-1)*(r-1))/(n-1))    
-    rcorr = r - ((r-1)**2)/(n-1)
-    kcorr = k - ((k-1)**2)/(n-1)
-    return np.sqrt(phi2corr / ( min( (kcorr-1), (rcorr-1))) )
-
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 print "##Getting data:##"
-data = pd.read_csv("data/us_perm_visas.csv",  nrows = 100000, low_memory = False)
+data = pd.read_csv("data/us_perm_visas.csv", low_memory = False)# nrows = 200000, 
 print data['case_status'].value_counts()
 data['case_status'] = data['case_status'].str.replace( "Certified-Expired","Certified")
 print("")
 # toggle if to replace withdrawn with denied
-#~ data['case_status'] = data['case_status'].str.replace( "Withdrawn","Denied")
+data['case_status'] = data['case_status'].str.replace( "Withdrawn","Denied")
 data = data[data['case_status'].isin(['Certified', 'Denied'])]
 
 
@@ -75,7 +62,7 @@ drop_cols = [
 'naics_2007_us_code',
 'wage_offer_from_9089',
 'employer_address_1',
-#~ "pw_job_title_9089",
+# ~ "pw_job_title_9089",
 "decision_date"] #"wage_offer_unit_of_pay_9089"	
 
 
@@ -84,12 +71,9 @@ drop_cols = [
 drop_cols = list(set(drop_cols) & set(data.columns))
 data.drop(drop_cols, axis = 1, inplace = True)
 columns = data.columns
-print "##Cols being used:##"
 for col in data.columns:
-	#~ print col
 	if type(data[col][0]) == str:
 		data[col] = data[col].str.upper()
-print ""
 
 data['employer_name'] = pd.Series(data['employer_name']).str.replace(".", '').str.replace(",", '').str.replace(" ", '')
 data['pw_soc_title'] = pd.Series(data['pw_soc_title']).str.replace(".", '').str.replace(",", '').str.replace(" ", '')
@@ -98,7 +82,6 @@ data.to_csv("pruned_data_eda.csv")
 
 one_hot_cat = []
 label_cat = []
-# See how we're doing for categoricals
 print "Check categoricals"
 print "----"
 
@@ -111,27 +94,28 @@ for col in columns:
 		else:
 			one_hot_cat.append( col )
 
-n_features = len(data.columns)
-corr_matt = []
-for col1 in data.columns:
-	row = []
-	for col2 in data.columns:
-		confusion_matrix = pd.crosstab(data[col1].values, data[col2].values)
-		row.append( cramers_corrected_stat(confusion_matrix))
-	corr_matt.append(row)
+print("Do plots")
 
+encoded_dat = copy.deepcopy(data)
+print("##Do encoding of catagoricals##")
+for col in encoded_dat.columns:
+	enc = LabelEncoder()
+	enc.fit(encoded_dat[col])
+	encoded_dat[col] = enc.transform(encoded_dat[col])
+
+# encoded_dat = pd.concat((encoded_dat[label_cat], pd.get_dummies(encoded_dat, columns=one_hot_cat, drop_first=True)),axis=1)
+
+corr_matt = encoded_dat.corr().as_matrix()
 matplotlib.rcParams.update({'font.size': 6})
 fig, ax = plt.subplots()
 im = ax.imshow(corr_matt)
+n_features = len(encoded_dat.columns)
 
 # We want to show all ticks...
 ax.set_xticks(np.arange(n_features))
 ax.set_yticks(np.arange(n_features))
-# ... and label them with the respective list entries
-ax.set_xticklabels(data.columns, fontsize = 9)
-ax.set_yticklabels(data.columns,fontsize = 9)
-#~ ax.ticklabel_format(style='plain')
-# Rotate the tick labels and set their alignment.
+ax.set_xticklabels(encoded_dat.columns, fontsize = 9)
+ax.set_yticklabels(encoded_dat.columns,fontsize = 9)
 plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
 # Loop over data dimensions and create text annotations.
@@ -143,17 +127,17 @@ for i in range(n_features):
 
 fig.tight_layout(rect=[0, 0.00, 1, .9])
 
-plt.title("Cramer's correlation of remaining features", fontdict = {'fontsize':15,'weight': 'bold'})
+plt.title("Correlation of remaining features", fontdict = {'fontsize':15,'weight': 'bold'})
 
 plt.savefig("corrs.png",dpi = 300)
 fig.clf()
+
 cert_income = data[data['case_status']=='CERTIFIED']['annual_salary']/1000.
 den_income = data[data['case_status']=='DENIED']['annual_salary']/1000.
-n, bins, patches = plt.hist(x=cert_income, bins='auto', color='red', alpha=0.7, rwidth=0.85)
-n, bins, patches = plt.hist(x=den_income, bins='auto', color='#0504aa', alpha=0.7, rwidth=0.85)
+n, bins, patches = plt.hist(x=cert_income, bins='auto', color='red', alpha=0.7, rwidth=0.85,histtype='step'	)
+n, bins, patches = plt.hist(x=den_income, bins='auto', color='#0504aa', alpha=0.7, rwidth=0.85,histtype='step')
 plt.xlim(right = 200)
 plt.xlim(left = 0)
-#~ plt.show()
 plt.title("Salary split for certified (red) and denied (blue)", fontdict = {'fontsize':15,'weight': 'bold'})
 plt.xlabel("Salary (thousands)",fontsize = 11)
 plt.ylabel("Number of cases",fontsize = 11)
@@ -161,3 +145,6 @@ plt.savefig("salary.png",dpi = 300)
 
 print cert_income.describe()
 print den_income.describe()
+
+
+

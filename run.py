@@ -9,14 +9,14 @@ from dat import *
 # Get data but only keep certified and denied outcomes 
 # (future work could possibly include the merger of the other outcomes, i.e. certified expired as certified)
 print "##Getting data:##"
-data = pd.read_csv("data/us_perm_visas.csv",nrows = 1500, low_memory = False)
+data = pd.read_csv("data/us_perm_visas.csv", nrows = 10000, low_memory = False)
 print data['case_status'].value_counts()
 data['case_status'] = data['case_status'].str.replace( "Certified-Expired","Certified")
 print "MEM:"
 print data.memory_usage(deep=True).sum()/(10.**9)
-#~ print data.dtypes
-print("")
 # toggle if to replace withdrawn with denied
+
+
 #~ data['case_status'] = data['case_status'].str.replace( "Withdrawn","Denied")
 data = data[data['case_status'].isin(['Certified', 'Denied'])]
 temp = list(set(data['case_status']))
@@ -81,24 +81,24 @@ print data['case_status'].value_counts()
 drop_cols = list(set(drop_cols) & set(data.columns))
 data.drop(drop_cols, axis = 1, inplace = True)
 columns = data.columns
-print "##Cols being used:##"
+# print "##Cols being used:##"
 for col in data.columns:
-	print col
+	# print col
 	if type(data[col][0]) == str:
 		data[col] = data[col].str.upper()
-print ""
+# print ""
 print "Memory usage:"
 print data.memory_usage(deep=True).sum()/(10.**9)
 
 data['employer_name'] = pd.Series(data['employer_name']).str.replace(".", '').str.replace(",", '').str.replace(" ", '')
 pd.Series(data['employer_name'].value_counts()).to_csv("companies.csv")
 data.to_csv("pruned_data.csv")
-#~ exit(0)
+
 # See how we're doing for categoricals
-for col in columns:
-	if type(data[col][0]) == str:
-		bit = list(set(data[col]))
-		print( col, len(bit) )
+# for col in columns:
+	# if type(data[col][0]) == str:
+		# bit = list(set(data[col]))
+		# print( col, len(bit) )
 		
 print("---")
 #~ exit(0)
@@ -112,13 +112,16 @@ data.loc[data.case_status == 'CERTIFIED', 'case_status'] = 1.
 data.loc[data.case_status == 'DENIED', 'case_status'] = 0.
 out = data['case_status'].astype('float')
 
+inp = fns.mixed_encode(inp)
+# exit(0)
 
-print("##Do encoding of catagoricals##")
-for col in inp.columns:
-	enc = LabelEncoder()
-	enc.fit(inp[col])
-	inp[col] = enc.transform(inp[col])
+# for col in inp.columns:
+	# enc = LabelEncoder()
+	# enc.fit(inp[col])
+	# inp[col] = enc.transform(inp[col])
 
+print inp.head(5)
+exit(0)
 print("##Split + shuffle##")
 train_x, test_x, train_y, test_y = train_test_split(inp, out,test_size = 0.25, random_state = 1)
 ntrain = len(train_x)
@@ -138,7 +141,7 @@ print("\n")
 
 
 print("-------------------Single tree classifier-------------------")
-fns.single_tree(data_dict, min_leaf_samples, max_leaf_nodes, max_depth )
+fns.single_tree(data_dict)
 print("\n")
 
 print("-------------------Forest classifier-------------------")
