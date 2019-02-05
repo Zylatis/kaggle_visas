@@ -9,32 +9,44 @@ import copy
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
+
+# Import full dataset
 print "##Getting data:##"
-data = pd.read_csv("data/us_perm_visas.csv", low_memory = False)# nrows = 200000, 
+data = pd.read_csv("data/us_perm_visas.csv", low_memory = False, nrows = 50000)
+nrows = len(data)
+# Output number of each outcome
 print data['case_status'].value_counts()
+
+# Replace certified-expired with certified, as we are interested in the certification process
 data['case_status'] = data['case_status'].str.replace( "Certified-Expired","Certified")
-print("")
-# toggle if to replace withdrawn with denied
+
+# Toggle if to replace withdrawn with denied
 data['case_status'] = data['case_status'].str.replace( "Withdrawn","Denied")
 data = data[data['case_status'].isin(['Certified', 'Denied'])]
 
-
-# fix some formating errors
+# Fix some formating errors #
+# Typo in column name
 data['country_of_citizenship'].fillna(data['country_of_citzenship'], inplace = True)
-data['decision_date']  = pd.to_datetime(data['decision_date'],format = '%Y-%m-%d')
-data['decision_year'] =  data['decision_date'].apply(lambda x: x.year)
+
+# Some inconsistencies with use of abbrevs vs full state names
 data['employer_state'] = data['employer_state'].map(fns.us_state_abbrev_cap)
 
-pd.Series(data.columns).to_csv("all_cols.csv")
+# Convert date string into python datetime format
+# Also add in decision year as possible feature as additional granularity from full date may be overkill
+data['decision_date']  = pd.to_datetime(data['decision_date'],format = '%Y-%m-%d')
+data['decision_year'] =  data['decision_date'].apply(lambda x: x.year)
+
+
 cols = data.columns
-non_na_cols = []
-for col in cols:
-	if len(data[col].dropna()) >  0.9*len(data[col]):
-		non_na_cols.append(col)
-		#~ print col
-
-
-
+# We have a significan amount of missing data
+# print len(data['employer_address_2'].dropna()), len(data['employer_address_2'])
+missing_summary = pd.DataFrame(index = data.columns, columns = ['% NAN'])
+missing_summary.index.name = 'FEATURE'
+missing_summary['% NAN'] = [ round(1.-len(data[col].dropna())/(1.*nrows),2) for col in cols]
+# print missing_summary['% NAN'].loc['employer_address_2']
+pd.Series(data.columns).to_csv("all_cols.csv")
+missing_summary = missing_summary[missing_summary['% NAN'] < 0.1]
+non_na_cols = missing_summary.index.values
 # Keep only the columns where >90% of the data are not nan, then drop the rows
 # which have *ANY* entry as nan
 data = data[non_na_cols].dropna()
@@ -64,7 +76,6 @@ drop_cols = [
 'employer_address_1',
 # ~ "pw_job_title_9089",
 "decision_date"] #"wage_offer_unit_of_pay_9089"	
-
 
 # This is to ensure we only drop cols that are actually there!
 # This process may depend on how much data we read in, and how we treat that 90% prune
