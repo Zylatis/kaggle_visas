@@ -58,6 +58,7 @@ temp =  [list(a) for a in zip(data['pw_unit_of_pay_9089'] , data['pw_amount_9089
 data['annual_salary'] = map(fns.convert, temp)
 
 
+# Manual dropping of features we think aren't informative/too fine grained/double counting
 drop_cols = [
 'naics_2007_us_title',
 #~ 'pw_soc_title',
@@ -77,6 +78,7 @@ drop_cols = [
 # ~ "pw_job_title_9089",
 "decision_date"] #"wage_offer_unit_of_pay_9089"	
 
+
 # This is to ensure we only drop cols that are actually there!
 # This process may depend on how much data we read in, and how we treat that 90% prune
 drop_cols = list(set(drop_cols) & set(data.columns))
@@ -86,36 +88,53 @@ for col in data.columns:
 	if type(data[col][0]) == str:
 		data[col] = data[col].str.upper()
 
+# Standardise all of the remaining strings (remove all punctuation and other cosmetic things to ensure we don't have duplicates)
 data['employer_name'] = pd.Series(data['employer_name']).str.replace(".", '').str.replace(",", '').str.replace(" ", '')
 data['pw_soc_title'] = pd.Series(data['pw_soc_title']).str.replace(".", '').str.replace(",", '').str.replace(" ", '')
 pd.Series(data['employer_name'].value_counts()).to_csv("companies.csv")
 data.to_csv("pruned_data_eda.csv")
 
+
+# Investigate our categoricals and how best to process them
+# If we have just a few different values of a given categorical feature, one hot is okay
+# If not, this will take too much memory so we resort to just using label encoding
 one_hot_cat = []
 label_cat = []
 print "Check categoricals"
 print "----"
 
 for col in columns:
+	# Only consider this if we have string values
 	if type(data[col][0]) == str:
+		# Get list of values
 		bit = list(set(data[col]))
+		# Print number of different values of this feature
 		print( col, len(bit) )
+		# If we have more than 5, label encode, otherwise one-hot encode
 		if(len(bit) > 5 ):
 			label_cat.append(col)
 		else:
 			one_hot_cat.append( col )
 
-print("Do plots")
+# The above process will result in a split, some label, some one-hot
+# To deal with use we uses a helper function which we use on a deep copy to be safe
 
 encoded_dat = copy.deepcopy(data)
-print("##Do encoding of catagoricals##")
-for col in encoded_dat.columns:
-	enc = LabelEncoder()
-	enc.fit(encoded_dat[col])
-	encoded_dat[col] = enc.transform(encoded_dat[col])
+encoded_dat = fns.mixed_encode( encoded_dat , True)
 
+# exit(0)
+# print("##Do encoding of catagoricals##")
+# for col in encoded_dat.columns:
+# 	enc = LabelEncoder()
+# 	enc.fit(encoded_dat[col])
+# 	encoded_dat[col] = enc.transform(encoded_dat[col])
+
+# vestigial comment
 # encoded_dat = pd.concat((encoded_dat[label_cat], pd.get_dummies(encoded_dat, columns=one_hot_cat, drop_first=True)),axis=1)
 
+print("Do plots")
+
+# Compute Pearesons correlations and plot as a heatmap
 corr_matt = encoded_dat.corr().as_matrix()
 matplotlib.rcParams.update({'font.size': 6})
 fig, ax = plt.subplots()
@@ -143,6 +162,8 @@ plt.title("Correlation of remaining features", fontdict = {'fontsize':15,'weight
 plt.savefig("corrs.png",dpi = 300)
 fig.clf()
 
+
+# One thing to investigate is if 
 cert_income = data[data['case_status']=='CERTIFIED']['annual_salary']/1000.
 den_income = data[data['case_status']=='DENIED']['annual_salary']/1000.
 n, bins, patches = plt.hist(x=cert_income, bins='auto', color='red', alpha=0.7, rwidth=0.85,histtype='step'	)
