@@ -60,6 +60,6 @@ us_state_abbrev = {
 }
 
 us_state_abbrev_cap = {}
-for k,v in us_state_abbrev.iteritems():
+for k,v in us_state_abbrev.items():
 	us_state_abbrev_cap[k.upper()] = v 
 	us_state_abbrev_cap[v] = v 

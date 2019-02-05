@@ -15,12 +15,12 @@ def cramers_corrected_stat(confusion_matrix):
     return np.sqrt(phi2corr / ( min( (kcorr-1), (rcorr-1))) )
 
 
-
-
-corr_matt = []
-for col1 in data.columns:
-	row = []
-	for col2 in data.columns:
-		confusion_matrix = pd.crosstab(data[col1].values, data[col2].values)
-		row.append( cramers_corrected_stat(confusion_matrix))
-	corr_matt.append(row)
+def get_cramers_corr( df ):
+    corr_matt = []
+    for col1 in df.columns:
+    	row = []
+    	for col2 in df.columns:
+    		confusion_matrix = pd.crosstab(df[col1].values, df[col2].values)
+    		row.append( cramers_corrected_stat(confusion_matrix))
+    	corr_matt.append(row)
+    return corr_matt

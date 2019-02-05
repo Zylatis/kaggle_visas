@@ -1,7 +1,7 @@
 import pandas as pd
 import fns
 from scipy.stats import pearsonr
-import scipy.stats as ss
+
 import numpy as np
 import matplotlib
 import copy
@@ -11,11 +11,11 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 
 # Import full dataset
-print "##Getting data:##"
-data = pd.read_csv("data/us_perm_visas.csv", low_memory = False, nrows = 50000)
+print("\n---------- Getting data ----------")
+data = pd.read_csv("data/us_perm_visas.csv", low_memory = False, nrows = 40000)
 nrows = len(data)
 # Output number of each outcome
-print data['case_status'].value_counts()
+print(data['case_status'].value_counts())
 
 # Replace certified-expired with certified, as we are interested in the certification process
 data['case_status'] = data['case_status'].str.replace( "Certified-Expired","Certified")
@@ -29,37 +29,36 @@ data = data[data['case_status'].isin(['Certified', 'Denied'])]
 data['country_of_citizenship'].fillna(data['country_of_citzenship'], inplace = True)
 
 # Some inconsistencies with use of abbrevs vs full state names
-data['employer_state'] = data['employer_state'].map(fns.us_state_abbrev_cap)
+data['employer_state'] = list( data['employer_state'].map(fns.us_state_abbrev_cap) )
 
 # Convert date string into python datetime format
 # Also add in decision year as possible feature as additional granularity from full date may be overkill
 data['decision_date']  = pd.to_datetime(data['decision_date'],format = '%Y-%m-%d')
 data['decision_year'] =  data['decision_date'].apply(lambda x: x.year)
+data.index.name = 'submission #'
 
 
-cols = data.columns
+columns = copy.deepcopy(data.columns)
 # We have a significan amount of missing data
-# print len(data['employer_address_2'].dropna()), len(data['employer_address_2'])
-missing_summary = pd.DataFrame(index = data.columns, columns = ['% NAN'])
+missing_summary = pd.DataFrame(index = columns, columns = ['% NAN'])
 missing_summary.index.name = 'FEATURE'
-missing_summary['% NAN'] = [ round(1.-len(data[col].dropna())/(1.*nrows),2) for col in cols]
-# print missing_summary['% NAN'].loc['employer_address_2']
-pd.Series(data.columns).to_csv("all_cols.csv")
+missing_summary['% NAN'] = [ round(1.-len(data[col].dropna())/(1.*nrows),2) for col in columns]
+
+pd.Series(data.columns).to_csv("all_columns.csv")
 missing_summary = missing_summary[missing_summary['% NAN'] < 0.1]
-non_na_cols = missing_summary.index.values
+non_na_columns = missing_summary.index.values
 # Keep only the columns where >90% of the data are not nan, then drop the rows
 # which have *ANY* entry as nan
-data = data[non_na_cols].dropna()
-# see how many and which survived
-#~ print len(data.columns)
+
+data = data[non_na_columns].dropna()
 
 # convert prevailing wage to salary (some are p/a some are p/hr)
 temp =  [list(a) for a in zip(data['pw_unit_of_pay_9089'] , data['pw_amount_9089'])]
-data['annual_salary'] = map(fns.convert, temp)
+data['annual_salary'] = list( map(fns.convert, temp) )
 
 
 # Manual dropping of features we think aren't informative/too fine grained/double counting
-drop_cols = [
+drop_columns = [
 'naics_2007_us_title',
 #~ 'pw_soc_title',
 'job_info_work_state', # try to find if this is indeed redundant with employer state
@@ -78,19 +77,20 @@ drop_cols = [
 # ~ "pw_job_title_9089",
 "decision_date"] #"wage_offer_unit_of_pay_9089"	
 
-
-# This is to ensure we only drop cols that are actually there!
+# This is to ensure we only drop columns that are actually there!
 # This process may depend on how much data we read in, and how we treat that 90% prune
-drop_cols = list(set(drop_cols) & set(data.columns))
-data.drop(drop_cols, axis = 1, inplace = True)
-columns = data.columns
-for col in data.columns:
+drop_columns = list(set(drop_columns) & set(data.columns))
+data.drop(drop_columns, axis = 1, inplace = True)
+
+# Update columns
+columns = copy.deepcopy(data.columns)
+for col in columns:
 	if type(data[col][0]) == str:
 		data[col] = data[col].str.upper()
-
+columns = copy.deepcopy(data.columns)
 # Standardise all of the remaining strings (remove all punctuation and other cosmetic things to ensure we don't have duplicates)
-data['employer_name'] = pd.Series(data['employer_name']).str.replace(".", '').str.replace(",", '').str.replace(" ", '')
-data['pw_soc_title'] = pd.Series(data['pw_soc_title']).str.replace(".", '').str.replace(",", '').str.replace(" ", '')
+data['employer_name'] = pd.Series(data['employer_name']).str.replace(".", '').str.replace(",", '').str.replace(" ", '').str.replace("-", '').str.replace("/", '').str.replace("*", '')
+data['pw_soc_title'] = pd.Series(data['pw_soc_title']).str.replace(".", '').str.replace(",", '').str.replace(" ", '').str.replace("-", '').str.replace("/", '').str.replace("*", '')
 pd.Series(data['employer_name'].value_counts()).to_csv("companies.csv")
 data.to_csv("pruned_data_eda.csv")
 
@@ -98,29 +98,18 @@ data.to_csv("pruned_data_eda.csv")
 # Investigate our categoricals and how best to process them
 # If we have just a few different values of a given categorical feature, one hot is okay
 # If not, this will take too much memory so we resort to just using label encoding
-one_hot_cat = []
-label_cat = []
-print "Check categoricals"
-print "----"
 
-for col in columns:
-	# Only consider this if we have string values
-	if type(data[col][0]) == str:
-		# Get list of values
-		bit = list(set(data[col]))
-		# Print number of different values of this feature
-		print( col, len(bit) )
-		# If we have more than 5, label encode, otherwise one-hot encode
-		if(len(bit) > 5 ):
-			label_cat.append(col)
-		else:
-			one_hot_cat.append( col )
+print("\n---------- Check categoricals ----------")
+divided_features = fns.divide_features(data)
+categoricals = data[divided_features['one_hot'] + divided_features['label']]
+ordinals = data[divided_features['cont']]
 
-# The above process will result in a split, some label, some one-hot
-# To deal with use we uses a helper function which we use on a deep copy to be safe
+n_ordinal = len(divided_features['cont'])
+n_cat = len(columns) - n_ordinal
+print(" Number of categoricals: " + str(n_cat) + ". Number of ordinals: " + str(n_ordinal ))
+cramers_corr_matrix = fns.get_cramers_corr( categoricals )
 
-encoded_dat = copy.deepcopy(data)
-encoded_dat = fns.mixed_encode( encoded_dat , True)
+exit(0)
 
 # exit(0)
 # print("##Do encoding of catagoricals##")
@@ -175,8 +164,8 @@ plt.xlabel("Salary (thousands)",fontsize = 11)
 plt.ylabel("Number of cases",fontsize = 11)
 plt.savefig("salary.png",dpi = 300)
 
-print cert_income.describe()
-print den_income.describe()
+# print cert_income.describe()
+# print den_income.describe()
 
 
 
