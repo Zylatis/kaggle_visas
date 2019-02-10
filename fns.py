@@ -35,7 +35,7 @@ def get_cramers_corr( df ):
     for col1 in df.columns:
     	row = []
     	for col2 in df.columns:
-    		print(col1, col2)
+    		# print(col1, col2)
     		if col1 == col2:
     			row.append(1.)
     		else:
@@ -43,7 +43,7 @@ def get_cramers_corr( df ):
 	    		confusion_matrix = pd.crosstab(df[col1].values, df[col2].values)
 	    		# print(col1, col2, confusion_matrix.shape)
 	    		row.append( cramers_corrected_stat(confusion_matrix))
-    		print( round(count/n_iterations,2))
+    		# print( round(count/n_iterations,2))
     		count = count + 1
     	corr_matt.append(row)
     return corr_matt

@@ -12,7 +12,7 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 # Import full dataset
 print("\n---------- Getting data ----------")
-data = pd.read_csv("data/us_perm_visas.csv", low_memory = False, nrows = 40000)
+data = pd.read_csv("data/us_perm_visas.csv", low_memory = False)
 nrows = len(data)
 # Output number of each outcome
 print(data['case_status'].value_counts())
@@ -104,12 +104,14 @@ divided_features = fns.divide_features(data)
 categoricals = data[divided_features['one_hot'] + divided_features['label']]
 ordinals = data[divided_features['cont']]
 
+
+# for now we will just use cramers to compare categoricals and look at ordinals separately
 n_ordinal = len(divided_features['cont'])
 n_cat = len(columns) - n_ordinal
 print(" Number of categoricals: " + str(n_cat) + ". Number of ordinals: " + str(n_ordinal ))
 cramers_corr_matrix = fns.get_cramers_corr( categoricals )
 
-exit(0)
+# exit(0)
 
 # exit(0)
 # print("##Do encoding of catagoricals##")
@@ -124,17 +126,22 @@ exit(0)
 print("Do plots")
 
 # Compute Pearesons correlations and plot as a heatmap
-corr_matt = encoded_dat.corr().as_matrix()
+# corr_matt = encoded_dat.corr().as_matrix()
+corr_matt = np.asarray(cramers_corr_matrix)
 matplotlib.rcParams.update({'font.size': 6})
 fig, ax = plt.subplots()
 im = ax.imshow(corr_matt)
-n_features = len(encoded_dat.columns)
+n_features = n_cat
+
 
 # We want to show all ticks...
 ax.set_xticks(np.arange(n_features))
 ax.set_yticks(np.arange(n_features))
-ax.set_xticklabels(encoded_dat.columns, fontsize = 9)
-ax.set_yticklabels(encoded_dat.columns,fontsize = 9)
+# ax.set_xticklabels(encoded_dat.columns, fontsize = 9)
+# ax.set_yticklabels(encoded_dat.columns,fontsize = 9)
+
+ax.set_xticklabels(categoricals, fontsize = 9)
+ax.set_yticklabels(categoricals,fontsize = 9)
 plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
 # Loop over data dimensions and create text annotations.
