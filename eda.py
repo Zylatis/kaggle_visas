@@ -35,9 +35,14 @@ data['employer_state'] = list( data['employer_state'].map(dat.us_state_abbrev_ca
 # Also add in decision year as possible feature as additional granularity from full date may be overkill
 data['decision_date']  = pd.to_datetime(data['decision_date'],format = '%Y-%m-%d')
 data['decision_year'] =  data['decision_date'].apply(lambda x: x.year)
+
+data['decision_date_elapsed'] = copy.deepcopy(data['decision_date'] )
+sorted_dates = data.sort_values(by = ['decision_date_elapsed'])['decision_date_elapsed']
+start = sorted_dates.iloc[0]
+data['decision_date_elapsed'] = data['decision_date_elapsed'].subtract( [start]*len(data) ).apply(lambda x: x.days)
+
+
 data.index.name = 'submission #'
-
-
 columns = copy.deepcopy(data.columns)
 # We have a significan amount of missing data
 missing_summary = pd.DataFrame(index = columns, columns = ['% NAN'])
@@ -91,14 +96,12 @@ columns = copy.deepcopy(data.columns)
 data['employer_name'] = pd.Series(data['employer_name']).str.replace(".", '').str.replace(",", '').str.replace(" ", '').str.replace("-", '').str.replace("/", '').str.replace("*", '')
 data['pw_soc_title'] = pd.Series(data['pw_soc_title']).str.replace(".", '').str.replace(",", '').str.replace(" ", '').str.replace("-", '').str.replace("/", '').str.replace("*", '')
 pd.Series(data['employer_name'].value_counts()).to_csv("companies.csv")
-data.to_csv("pruned_data_eda.csv")
-
 
 # Investigate our categoricals and how best to process them
 # If we have just a few different values of a given categorical feature, one hot is okay
 # If not, this will take too much memory so we resort to just using label encoding
 
-print("\n---------	- Check categoricals ----------")
+print("\n---------- Check categoricals ----------")
 divided_features = fns.divide_features(data)
 categoricals = data[divided_features['one_hot'] + divided_features['label']]
 ordinals = data[divided_features['cont']]
@@ -110,31 +113,25 @@ n_cat = len(columns) - n_ordinal
 print(" Number of categoricals: " + str(n_cat) + ". Number of ordinals: " + str( n_ordinal ))
 print("Do plots")
 
-fns.cramers_corr_plot( categoricals, "pre_trim")
+# fns.cramers_corr_plot( categoricals, "full_correlation")
+# categoricals.drop( ["pw_soc_title",
+#  "employer_postal_code",
+#  "job_info_work_city",
+#  "job_info_work_state"], axis = 1, inplace = True)
+# fns.cramers_corr_plot( categoricals, "truncated_correlation")
+
+# categoricals.drop( 
+# 	[
+# 	"employer_address_1",
+# 	"employer_city"	
+# 	],
+#  axis = 1, inplace = True)
+# fns.cramers_corr_plot( categoricals, "truncated_correlation2")
+print ordinals.columns
+fns.plot_ordinal( data, 'annual_salary', 1000., 300)
+fns.plot_ordinal( data, 'decision_date_elapsed', 1., 200.)
 
 
 
-categoricals.drop( ["pw_soc_title",
- "employer_postal_code",
- "job_info_work_city",
- "job_info_work_state"], axis = 1, inplace = True)
-fns.cramers_corr_plot( categoricals, "post_trim")
-
-categoricals.drop( 
-	[
-	"employer_address_1",
-	"employer_city"	
-	],
- axis = 1, inplace = True)
-fns.cramers_corr_plot( categoricals, "post_trim2")
-
-# cert_income = data[data['case_status']=='CERTIFIED']['annual_salary']/1000.
-# den_income = data[data['case_status']=='DENIED']['annual_salary']/1000.
-# n, bins, patches = plt.hist(x=cert_income, bins='auto', color='red', alpha=0.7, rwidth=0.85,histtype='step'	)
-# n, bins, patches = plt.hist(x=den_income, bins='auto', color='#0504aa', alpha=0.7, rwidth=0.85,histtype='step')
-# plt.xlim(right = 200)
-# plt.xlim(left = 0)
-# plt.title("Salary split for certified (red) and denied (blue)", fontdict = {'fontsize':15,'weight': 'bold'})
-# plt.xlabel("Salary (thousands)",fontsize = 11)
-# plt.ylabel("Number of cases",fontsize = 11)
-# plt.savefig("salary.png",dpi = 300)
+# Collect all the data together after trimming and so on
+# data.to_csv("pruned_data_eda.csv")

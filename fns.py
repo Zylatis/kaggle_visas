@@ -13,7 +13,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-
+img_folder = "imgs/"
 def cramers_corrected_stat(confusion_matrix):
     """ calculate Cramers V statistic for categorial-categorial association.
         uses correction from Bergsma and Wicher, 
@@ -275,7 +275,22 @@ def cramers_corr_plot( categoricals, filename ):
 
 	fig.tight_layout(rect=[0, 0.00, 	1, .9])
 
-	plt.title("Correlation of remaining features", fontdict = {'fontsize':15,'weight': 'bold'})
+	plt.title("Correlation of remaining features", fontdict = {'fontsize':10,'weight': 'bold'})
 
-	plt.savefig( filename + ".png",dpi = 400)
+	plt.savefig( img_folder + filename + ".png",dpi = 400)
 	fig.clf()
+
+
+def plot_ordinal( df, col, y_scale, x_max ):
+	certified_data = df[df['case_status']=='CERTIFIED'][col].values/y_scale
+	denied_data = df[df['case_status']=='DENIED'][col].values/y_scale
+
+	n, bins, patches = plt.hist(x=certified_data, bins='auto', color='red', alpha=0.7, rwidth=0.85,histtype='step'	)
+	n, bins, patches = plt.hist(x=denied_data, bins='auto', color='#0504aa', alpha=0.7, rwidth=0.85,histtype='step')
+	plt.xlim(right = x_max)
+	plt.xlim(left = 0)
+	plt.title(col + " split for certified (red) and denied (blue)", fontdict = {'fontsize':10,'weight': 'bold'})
+	plt.xlabel(col,fontsize = 11)
+	plt.ylabel("Number of cases",fontsize = 11)
+	plt.savefig( img_folder + col + "_split.png",dpi = 400)
+	plt.clf()
