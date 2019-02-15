@@ -5,14 +5,18 @@ import dat
 import numpy as np
 import copy
 import matplotlib
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder, StandardScaler
+import cv2
 
+# Flag to determine if we want to hear the code whinge about dropping cols that
+# don't exist - some cols may appear or not depending on how much data we read in
+drop_errors = 'ignore'
 
 # Import full dataset
 print("\n---------- Getting data ----------")
-data = pd.read_csv("data/us_perm_visas.csv",  nrows = 50000, low_memory = False)
+data = pd.read_csv("data/us_perm_visas.csv",  nrows = 50000	, low_memory = False)
 nrows = len(data)
 # Output number of each outcome
 print(data['case_status'].value_counts())
@@ -55,9 +59,11 @@ non_na_columns = missing_summary.index.values
 # Keep only the columns where >90% of the data are not nan, then drop the rows
 # which have *ANY* entry as nan
 
+assert len(non_na_columns) > 0
 data = data[non_na_columns].dropna()
 
 # convert prevailing wage to salary (some are p/a some are p/hr)
+assert 'pw_unit_of_pay_9089' in data.columns
 temp =  [list(a) for a in zip(data['pw_unit_of_pay_9089'] , data['pw_amount_9089'])]
 data['annual_salary'] = list( map(fns.convert, temp) )
 
@@ -80,11 +86,11 @@ drop_columns = [
 # ~ "pw_job_title_9089",
 #"decision_date"
 ] #"wage_offer_unit_of_pay_9089"	
-
+		
 # This is to ensure we only drop columns that are actually there!
 # This process may depend on how much data we read in, and how we treat that 90% prune
 drop_columns = list(set(drop_columns) & set(data.columns))
-data.drop(drop_columns, axis = 1, inplace = True)
+data.drop(drop_columns, axis = 1, inplace = True, errors = drop_errors)
 
 # Update columns
 columns = copy.deepcopy(data.columns)
@@ -103,35 +109,44 @@ pd.Series(data['employer_name'].value_counts()).to_csv("companies.csv")
 
 print("\n---------- Check categoricals ----------")
 divided_features = fns.divide_features(data)
-categoricals = data[divided_features['one_hot'] + divided_features['label']]
-ordinals = data[divided_features['cont']]
+categoricals = copy.deepcopy(data[divided_features['one_hot'] + divided_features['label']]) #need copy here as we will drop stuff
 
+ordinals = data[divided_features['cont']]
 
 # for now we will just use cramers to compare categoricals and look at ordinals separately
 n_ordinal = len(divided_features['cont'])
 n_cat = len(columns) - n_ordinal
-print(" Number of categoricals: " + str(n_cat) + ". Number of ordinals: " + str( n_ordinal ))
-print("Do plots")
+print("\n")
+print("Number of categoricals: " + str(n_cat) + ". Number of ordinals: " + str( n_ordinal ) + "\n")
 
-# fns.cramers_corr_plot( categoricals, "full_correlation")
-# categoricals.drop( ["pw_soc_title",
-#  "employer_postal_code",
-#  "job_info_work_city",
-#  "job_info_work_state"], axis = 1, inplace = True)
-# fns.cramers_corr_plot( categoricals, "truncated_correlation")
+print("\n---------- Do plots ----------")
 
-# categoricals.drop( 
-# 	[
-# 	"employer_address_1",
-# 	"employer_city"	
-# 	],
-#  axis = 1, inplace = True)
-# fns.cramers_corr_plot( categoricals, "truncated_correlation2")
-print ordinals.columns
+for col in divided_features['one_hot']:
+	fns.stacked_bar(data,col)
+
+print("Compute Cramers correlations:")
+fns.cramers_corr_plot( categoricals, "full_correlation")
+categoricals.drop( ["pw_soc_title",	
+ "employer_postal_code",
+ "job_info_work_city",
+ "job_info_work_state"], axis = 1, inplace = True, errors = drop_errors)
+fns.cramers_corr_plot( categoricals, "truncated_correlation")
+
+categoricals.drop( 
+	[
+	"employer_address_1",
+	"employer_city"	
+	],
+ axis = 1, inplace = True, errors = drop_errors)
+fns.cramers_corr_plot( categoricals, "truncated_correlation2")
+
+print("Compute ordinal plots:")
 fns.plot_ordinal( data, 'annual_salary', 1000., 300)
 fns.plot_ordinal( data, 'decision_date_elapsed', 1., 200.)
 
 
-
 # Collect all the data together after trimming and so on
-# data.to_csv("pruned_data_eda.csv")
+print("\n---------- Dumping truncated data to file ----------")
+
+data.to_csv("pruned_data_eda.csv")
+	

@@ -4,35 +4,43 @@ from sklearn import tree, linear_model, ensemble
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from sklearn.neural_network import MLPClassifier
+from sklearn.neighbors import KernelDensity
 import numpy as np
 from scipy.stats import randint as randint
 import dat
 import copy
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import matplotlib
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import cv2
+import itertools
 
 img_folder = "imgs/"
+eps = 10**(-3)
+
 def cramers_corrected_stat(confusion_matrix):
-    """ calculate Cramers V statistic for categorial-categorial association.
-        uses correction from Bergsma and Wicher, 
-        Journal of the Korean Statistical Society 42 (2013): 323-328
-    """
+    # Shamelessly pinched from someone on SO which references
+    # Wicher, Journal of the Korean Statistical Society 42 (2013): 323-328
     chi2 = ss.chi2_contingency(confusion_matrix)[0]
     n = confusion_matrix.sum().sum()
     phi2 = chi2/n
-    chi2 = [] # Clear stuff to save memory (as below)
+
+    # Clear stuff to save memory (as below)
+    chi2 = [] 
     r,k = confusion_matrix.shape
     
     phi2corr = max(0, phi2 - ((k-1)*(r-1))/(n-1))    
     phi2 = []
     rcorr = r - ((r-1)**2)/(n-1)
     kcorr = k - ((k-1)**2)/(n-1)
-    return np.sqrt(phi2corr / ( min( (kcorr-1), (rcorr-1))) )
+    return np.sqrt(phi2corr / ( min( (kcorr-1), (rcorr-1)) + eps)  )
 
 
 def get_cramers_corr( df ):
+	# Computes Cramers correlation coefficient for a dataframe consisting *only*
+	# of categoricals. Uses 'cramers_corrected_stat()' for a given confusion matrix
+	# for a pair of features
     corr_matt = []
     n_iterations = 1.*len(df.columns)**2
     count = 0.
@@ -50,8 +58,9 @@ def get_cramers_corr( df ):
 
 
 
-# Possibly more useful to wrap all this shit in a class but fine for now
 def search_summary( results, model ):
+	# Possibly more useful to wrap all this shit in a class but fine for now
+	
 	summary = pd.DataFrame(results['params'])	
 	summary['score'] =  results['mean_train_score']
 	summary.set_index('score', inplace = True)
@@ -65,6 +74,7 @@ def search_summary( results, model ):
 
 
 def convert( pair ):
+	# Helper function used to convert all salaries to annual
 	a = pair[0]
 	if type(pair[1]) == str:
 		b = float(pair[1].replace(',', ''))
@@ -73,10 +83,11 @@ def convert( pair ):
 		
 	return b*dat.salary_conversion[a]
 	
-# takes in classifier model, trains, gives accuracy
-# classifier specific calcs need to be done outside this, but the model should be returned
-# (pass by model yay)
 def fit_model( clf, data_dict, param_space, model ):
+	# takes in classifier model, trains, gives accuracy
+	# classifier specific calcs need to be done outside this, but the model should be returned
+	# (pass by model yay)
+
 	train_x = data_dict['train_x']
 	test_x = data_dict['test_x']
 	train_y = data_dict['train_y']
@@ -166,24 +177,30 @@ def NN( data_dict ):
 	}
 	fit_model(clf, data_dict, param_space, "NN")
 
-def divide_features( data ):
+def divide_features( data, threshold = 5 ):
+	assert threshold >= 0 
+	# Divvies up features into three categories: ordinal, one hot categoricals, and label encoded categoricals
+	# The ordinals are any numeric features, and the remaining categoricals are split according to the number
+	# of unique values - if > threshold then label encoding is used, else one-hot
 	label_cat = []
 	one_hot_cat = []
 	continuous = []
+	feature_count_summary = []
+	
 	for col in data.columns:
 		# Get list of values
 		bit = list(set(data[col]))
 		# Print number of different values of this feature
-		print( [ col, len(bit) ])
-
+		feature_count_summary.append( [ col, len(bit) ] )
+		
 		# Only looking at cases where the value type is a string
 		if type(data[col][0]) == str:
 			bit = list(set(data[col]))
 			
-			# If there are more than n = 5 values for given feature, make it label encoded
-			if(len(bit) > 5 ):
+			# If there are more than n = threshold values for given feature, make it label encoded
+			if(len(bit) > threshold ):
 				label_cat.append(col)
-			# if  <=5 then we can reasonably one-hot encode it using
+			# if  <= threshold then we can reasonably one-hot encode it using
 			else:
 				one_hot_cat.append( col )
 
@@ -191,6 +208,11 @@ def divide_features( data ):
 		else:
 			continuous.append(col)
 
+	feature_count_summary = pd.DataFrame(feature_count_summary, columns = ["Feature", "Counts"])
+	print(feature_count_summary)
+	print("\n")
+
+	print("Ordinal features: " + ', '.join(continuous))
 	return {'one_hot' : one_hot_cat, 'label' : label_cat, 'cont' : continuous }
 
 
@@ -273,7 +295,7 @@ def cramers_corr_plot( categoricals, filename ):
 	        text = ax.text(j, i, round(corr_matt[i][j],2), ha="center", va="center", color="w")
 
 
-	fig.tight_layout(rect=[0, 0.00, 	1, .9])
+	fig.tight_layout(rect=[0, 0.00, 1, .9])
 
 	plt.title("Correlation of remaining features", fontdict = {'fontsize':10,'weight': 'bold'})
 
@@ -281,16 +303,62 @@ def cramers_corr_plot( categoricals, filename ):
 	fig.clf()
 
 
-def plot_ordinal( df, col, y_scale, x_max ):
+# Plot ordinals against case outcome
+def plot_ordinal( df, col, y_scale, x_max):
+	print("Plotting ordinal column " + col )
+	assert y_scale > 0
+	assert x_max > 0
+	assert col in df.columns
+	
 	certified_data = df[df['case_status']=='CERTIFIED'][col].values/y_scale
 	denied_data = df[df['case_status']=='DENIED'][col].values/y_scale
-
-	n, bins, patches = plt.hist(x=certified_data, bins='auto', color='red', alpha=0.7, rwidth=0.85,histtype='step'	)
-	n, bins, patches = plt.hist(x=denied_data, bins='auto', color='#0504aa', alpha=0.7, rwidth=0.85,histtype='step')
+	
+	n, bins, patches = plt.hist(x=certified_data, bins='auto', color='red', alpha=0.7, histtype='step')
+	H1 = [ [bins[i], n[i] ] for i in range(len(n))]
+	n, bins, patches = plt.hist(x=denied_data, bins='auto', color='#0504aa', alpha=0.7,histtype='step')
+	H2 = [ [bins[i], n[i] ] for i in range(len(n))]
+	
 	plt.xlim(right = x_max)
-	plt.xlim(left = 0)
+	plt.xlim(left = 0) # assumes we won't be plottin negative stuff for now
 	plt.title(col + " split for certified (red) and denied (blue)", fontdict = {'fontsize':10,'weight': 'bold'})
 	plt.xlabel(col,fontsize = 11)
 	plt.ylabel("Number of cases",fontsize = 11)
+	plt.savefig( img_folder + col + "_split.png",dpi = 400)
+	plt.clf()
+
+	
+	anova = ss.f_oneway(certified_data, denied_data)
+	# print anova
+	pval = round(anova.pvalue,4)
+ 	print("ANOVA p-val " + str(pval) + "\n")
+
+
+
+def stacked_bar( df, col ):
+	print col
+	width = 1
+
+	# want the totals to sort by height to make comparisons easier
+	totals = df[col].value_counts().sort_values(ascending = False)
+	vals =  list(totals.index)
+	n_vals = len(vals)
+	
+	certified_data = df[df['case_status']=='CERTIFIED'][col].value_counts()
+	denied_data = df[df['case_status']=='DENIED'][col].value_counts()
+
+	certified_data_ordered = [ certified_data[x] if x in certified_data  else 0 for x in vals ]
+	denied_data_ordered = [ denied_data[x] if x in denied_data  else 0 for x in vals ]
+	
+	
+
+	x_space = np.arange( n_vals )
+	p1 = plt.bar(x_space, certified_data_ordered , width)
+	p2 = plt.bar(x_space, denied_data_ordered, width, bottom=certified_data_ordered)
+	plt.xticks(x_space, vals, rotation='vertical')
+	plt.legend((p1[0], p2[0]), ('Certified', 'Denied'))
+	plt.title(" Certified/denied split for "+ col, fontdict = {'fontsize':10,'weight': 'bold'})
+	plt.ylabel("Number of cases",fontsize = 11)
+	
+	# plt.show()
 	plt.savefig( img_folder + col + "_split.png",dpi = 400)
 	plt.clf()
