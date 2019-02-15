@@ -9,7 +9,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import cv2
-
+csv_output = "truncated_data/"
 # Flag to determine if we want to hear the code whinge about dropping cols that
 # don't exist - some cols may appear or not depending on how much data we read in
 drop_errors = 'ignore'
@@ -53,7 +53,7 @@ missing_summary = pd.DataFrame(index = columns, columns = ['% NAN'])
 missing_summary.index.name = 'FEATURE'
 missing_summary['% NAN'] = [ round(1.-len(data[col].dropna())/(1.*nrows),2) for col in columns]
 
-pd.Series(data.columns).to_csv("all_columns.csv")
+pd.Series(data.columns).to_csv(csv_output + "all_columns.csv")
 missing_summary = missing_summary[missing_summary['% NAN'] < 0.1]
 non_na_columns = missing_summary.index.values
 # Keep only the columns where >90% of the data are not nan, then drop the rows
@@ -101,7 +101,7 @@ columns = copy.deepcopy(data.columns)
 # Standardise all of the remaining strings (remove all punctuation and other cosmetic things to ensure we don't have duplicates)
 data['employer_name'] = pd.Series(data['employer_name']).str.replace(".", '').str.replace(",", '').str.replace(" ", '').str.replace("-", '').str.replace("/", '').str.replace("*", '')
 data['pw_soc_title'] = pd.Series(data['pw_soc_title']).str.replace(".", '').str.replace(",", '').str.replace(" ", '').str.replace("-", '').str.replace("/", '').str.replace("*", '')
-pd.Series(data['employer_name'].value_counts()).to_csv("companies.csv")
+pd.Series(data['employer_name'].value_counts()).to_csv(csv_output+"companies.csv")
 
 # Investigate our categoricals and how best to process them
 # If we have just a few different values of a given categorical feature, one hot is okay
@@ -121,10 +121,11 @@ print("Number of categoricals: " + str(n_cat) + ". Number of ordinals: " + str( 
 
 print("\n---------- Do plots ----------")
 
+print("Stacked bar graphs for 'one-hot'-esque cols")
 for col in divided_features['one_hot']:
 	fns.stacked_bar(data,col)
 
-print("Compute Cramers correlations:")
+print("Compute Cramers correlations for all, trimmed, and final set of categoricals:")
 fns.cramers_corr_plot( categoricals, "full_correlation")
 categoricals.drop( ["pw_soc_title",	
  "employer_postal_code",
@@ -148,5 +149,5 @@ fns.plot_ordinal( data, 'decision_date_elapsed', 1., 200.)
 # Collect all the data together after trimming and so on
 print("\n---------- Dumping truncated data to file ----------")
 
-data.to_csv("pruned_data_eda.csv")
+data.to_csv(csv_output+"pruned_data_eda.csv")
 	
