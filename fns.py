@@ -12,7 +12,7 @@ import sys
 import copy
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import matplotlib
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import cv2
 import itertools
@@ -22,6 +22,16 @@ img_folder = "imgs/"
 eps = 10**(-3)
 
 
+# Come back and convert this to lambda!
+def clean_col( string ):
+	return filter(str.isalnum, string).upper()
+
+def standardise_strings( df_slice ):
+	# rubbish = [ ".", ",", " ", "-", ""]
+	cols = df_slice.columns
+	for col in cols:
+		assert type(df_slice[col][0]) == str
+		df_slice[col] = map(clean_col, df_slice[col])
 
 def cramers_corrected_stat(confusion_matrix):
 	# Shamelessly pinched from someone on SO which references
@@ -299,7 +309,7 @@ def cramers_corr_plot( categoricals, filename ):
 
 	fig.tight_layout(rect=[0, 0.00, 1, .9])
 
-	plt.title("Correlation of remaining features", fontdict = {'fontsize':10,'weight': 'bold'})
+	plt.title("Cramers V correlation for categoricals", fontdict = {'fontsize':10,'weight': 'bold'})
 
 	plt.savefig( img_folder + filename + ".png",dpi = 400)
 	fig.clf()
@@ -328,9 +338,7 @@ def plot_ordinal( df, col, y_scale, x_max):
 	plt.savefig( img_folder + col + "_split.png",dpi = 400)
 	plt.clf()
 
-	
 	anova = ss.f_oneway(certified_data, denied_data)
-	# print anova
 	pval = round(anova.pvalue,4)
 	print("ANOVA p-val " + str(pval) + "\n")
 
