@@ -39,3 +39,57 @@ plt.xlabel(col,fontsize = 11)
 plt.ylabel("PDF",fontsize = 11)
 plt.savefig( img_folder + col + "_split_gaussian_kernel.png",dpi = 400)
 plt.clf()
+
+
+
+# ATTEMPT AT ITERATIVE PARALLEL CRAMERS CORRELATION TO FIX MEM USAGE ISSUE
+# TL;DR IT SUUUUUCKS. Super slow, unclear why, possibly constant slicing of dataframes which is naughty.
+# For now will focus on mem reduction on other case, though it's kind of useless really as just for one plot
+def cramers_corr_pair( df_slice ):
+
+	col1, col2 = df_slice.columns
+	print col1, col2
+	if col1 == col2:
+		return 1.
+	n = len(df_slice)
+		
+	vals1 = set(df_slice[col1].values)
+	vals2 = set(df_slice[col2].values)
+
+	chi2 = 0.
+	k = len(vals1)
+	r = len(vals2)
+	assert n>0
+	for v1 in vals1:
+		di = df_slice[df_slice[col1] == v1]
+		ni =1.*len(di)
+		for v2 in vals2:
+			
+			dj = df_slice[df_slice[col2]==v2]
+			dij = di[di[col2] == v2]
+			nj = 1.*len(dj)
+			nij = 1.*len(dij)
+			
+			frac = ni*nj/n
+			assert ni>0
+			assert nj>0
+			assert n>0
+			chi2 += ((nij - frac)**2)/frac
+	phi2 = chi2/n
+	phi2corr = max(0., phi2 - ((k-1.)*(r-1.))/(n-1.))    
+	
+	rcorr = r - ((r-1.)**2)/(n-1.)
+	kcorr = k - ((k-1.)**2)/(n-1.)
+	
+	return np.float32(np.sqrt(phi2corr / ( min( (kcorr-1), (rcorr-1)) + eps)  ))
+
+
+def cramers2( df ):
+	cols = df.columns
+
+	all_pairs = list(itertools.product(cols,cols))
+	all_pair_frames = [ df[list(pair)] for pair in all_pairs ]
+	p = mp.Pool(4)
+
+	vals = p.map( cramers_corr_pair, all_pair_frames )
+	return 0
