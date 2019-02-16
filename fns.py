@@ -89,6 +89,7 @@ def get_cramers_corr( df, parallel = False ):
 		p = mp.Pool( mp.cpu_count() )
 		args = [ [df, col] for col in df.columns ]
 		corr_matt = p.map(cramers_corr_inner, args )
+		p.terminate() #unclear if this is needed, not 100% sure about scope here 
 	else:
 		for col1 in df.columns:
 			row = []
@@ -299,7 +300,7 @@ def cramers_corr_plot( categoricals, filename ):
 			text = ax.text(j, i, round(corr_matt[i][j],2), ha="center", va="center", color="w")
 
 
-	fig.tight_layout(rect=[0, 0.00, 1, .9])
+	fig.tight_layout(rect=[0, 0.0, 1, .9])
 
 	plt.title("Cramers V correlation for categoricals", fontdict = {'fontsize':10,'weight': 'bold'})
 
