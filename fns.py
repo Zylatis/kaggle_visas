@@ -23,10 +23,10 @@ try:
 except:
 	print("Couldn't find matplotlib_config.dat")
 	exit(0)
-config = f.read()
+config = f.read().strip()
 assert len(config) != 0
 if config != 'Agg' and config != 'pass':
-	print("Invalid matplotlib config (check spaces)")
+	print("Invalid matplotlib config")
 	exit(0)
 if config == 'Agg':		
 	matplotlib.use('Agg')
