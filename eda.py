@@ -99,14 +99,18 @@ categoricals = copy.deepcopy(data[divided_features['one_hot'] + divided_features
 ordinals = data[divided_features['cont']]
 
 # For now we will just use cramers to compare categoricals and look at ordinals separately
-n_ordinal = len(divided_features['cont'])
-n_cat = len(columns) - n_ordinal
-print("\n")
+n_ordinal = len(ordinals.columns)
+n_cat = len(categoricals.columns)
+
+print("\n")	
 print("Number of categoricals: " + str(n_cat) + ". Number of ordinals: " + str( n_ordinal ) + "\n")
 
 # Standardise all of the categoricals (all upper case, remove all punctuation and other cosmetic things to ensure we don't have duplicates)
 fns.standardise_strings( categoricals )
-data['case_status'] = data['case_status'].str.upper()
+
+# Collect all the cleaned up bits back into a single dataframe and poop out for later fitting
+data = pd.concat([categoricals, ordinals], axis=1)
+data.to_csv(csv_output+"pruned_data_eda.csv")
 
 print("\n---------- Do plots ----------")
 
@@ -129,5 +133,5 @@ fns.plot_ordinal( data, 'decision_date_elapsed', 1., 200.)
 # Collect all the data together after trimming and so on
 print("\n---------- Dumping truncated data to file ----------")
 
-data.to_csv(csv_output+"pruned_data_eda.csv")
+
 	

@@ -81,7 +81,6 @@ def get_cramers_corr( df ):
 	return corr_matt
 
 
-
 def search_summary( results, model ):
 	# Possibly more useful to wrap all this shit in a class but fine for now
 	
@@ -240,55 +239,14 @@ def divide_features( data, threshold = 5 ):
 	return {'one_hot' : one_hot_cat, 'label' : label_cat, 'cont' : continuous }
 
 
-# At one point was going to use this to do all correlations at once using label, onehot, and leavig it alone.
-# However, Cramers recovers correlation between city and state which this didn't (even full one-hot, i think, recheck)
-# So, given the fact we only have two numeric features we will just consider the correlations amongst categoricals
-# and look at the rest separately
-def mixed_encode(data, label_encode_all = False):
-	# If label_encode_all = True then apply_one_hot ignored (see below for commentary on why this is dumb and should be fixed)
-	encoded_dat = copy.deepcopy(data)
-	one_hot_cat = []
-
-	if not label_encode_all:
-		label_cat = []
-		for col in encoded_dat.columns:
-			# Get list of values
-			bit = list(set(data[col]))
-			# Print number of different values of this feature
-			print( col, len(bit) )
-
-			# Only looking at cases where the value type is a string
-			if type(data[col][0]) == str:
-				bit = list(set(data[col]))
-				
-				# If there are more than n = 5 values for given feature, make it label encoded
-				if(len(bit) > 5 ):
-					label_cat.append(col)
-				# if  <=5 then we can reasonably one-hot encode it using
-				else:
-					one_hot_cat.append( col )
-	else:
-		label_cat = data.columns
-
-	for col in label_cat:
+def encode_features( df, feature_types ):
+	for col in feature_types['label']:
 		enc = LabelEncoder()
-		enc.fit( encoded_dat[col])
-		encoded_dat[col] = enc.transform(encoded_dat[col])
+		enc.fit( df[col])
+		df[col] = enc.transform(df[col])
 
-	# Seems weird to have allow_one_hot and include catagoricals
-	# The purpose is to make this general purpose.
-	# When fitting we want to do the mixed encoding using one hot for certain catagoricals and label encoding for the rest
-
-	# For correlation matrix, however, we want to leave the catagoricals alone in this function and do something else with them, 
-	# namely the Cramers correlation. For now it's easier to not have that toggle here.
-	# Possibly better to have the calcualtion of cols done externally and then just have this encoder take in those cols and apply
-	# Add to todo list!
-
-	encoded_dat = pd.get_dummies(encoded_dat, columns=one_hot_cat, drop_first=True)
-
-	return encoded_dat
-
-
+	return pd.get_dummies(df, columns=feature_types['one_hot'], drop_first=True)
+	
 
 def cramers_corr_plot( categoricals, filename ):
 	cols = categoricals.columns
@@ -303,7 +261,6 @@ def cramers_corr_plot( categoricals, filename ):
 	matplotlib.rcParams.update({'font.size': 6})
 	fig, ax = plt.subplots()
 	im = ax.imshow(corr_matt)
-
 
 	# We want to show all ticks
 	ax.set_xticks(np.arange(n_features))
@@ -371,8 +328,6 @@ def stacked_bar( df, col ):
 	certified_data_ordered = [ certified_data[x] if x in certified_data  else 0 for x in vals ]
 	denied_data_ordered = [ denied_data[x] if x in denied_data  else 0 for x in vals ]
 	
-	
-
 	x_space = np.arange( n_vals )
 	p1 = plt.bar(x_space, certified_data_ordered , width)
 	p2 = plt.bar(x_space, denied_data_ordered, width, bottom=certified_data_ordered)
@@ -381,6 +336,5 @@ def stacked_bar( df, col ):
 	plt.title(" Certified/denied split for "+ col, fontdict = {'fontsize':10,'weight': 'bold'})
 	plt.ylabel("Number of cases",fontsize = 11)
 	
-	# plt.show()
 	plt.savefig( img_folder + col + "_split.png",dpi = 400)
 	plt.clf()

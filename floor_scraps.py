@@ -93,3 +93,55 @@ def cramers2( df ):
 
 	vals = p.map( cramers_corr_pair, all_pair_frames )
 	return 0
+
+
+
+
+# At one point was going to use this to do all correlations at once using label, onehot, and leavig it alone.
+# However, Cramers recovers correlation between city and state which this didn't (even full one-hot, i think, recheck)
+# So, given the fact we only have two numeric features we will just consider the correlations amongst categoricals
+# and look at the rest separately
+def mixed_encode(data, label_encode_all = False):
+	# If label_encode_all = True then apply_one_hot ignored (see below for commentary on why this is dumb and should be fixed)
+	encoded_dat = copy.deepcopy(data)
+	one_hot_cat = []
+
+	if not label_encode_all:
+		label_cat = []
+		for col in encoded_dat.columns:
+			# Get list of values
+			bit = list(set(data[col]))
+			# Print number of different values of this feature
+			print( col, len(bit) )
+
+			# Only looking at cases where the value type is a string
+			if type(data[col][0]) == str:
+				bit = list(set(data[col]))
+				
+				# If there are more than n = 5 values for given feature, make it label encoded
+				if(len(bit) > 5 ):
+					label_cat.append(col)
+				# if  <=5 then we can reasonably one-hot encode it using
+				else:
+					one_hot_cat.append( col )
+	else:
+		label_cat = data.columns
+
+	for col in label_cat:
+		enc = LabelEncoder()
+		enc.fit( encoded_dat[col])
+		encoded_dat[col] = enc.transform(encoded_dat[col])
+
+	# Seems weird to have allow_one_hot and include catagoricals
+	# The purpose is to make this general purpose.
+	# When fitting we want to do the mixed encoding using one hot for certain catagoricals and label encoding for the rest
+
+	# For correlation matrix, however, we want to leave the catagoricals alone in this function and do something else with them, 
+	# namely the Cramers correlation. For now it's easier to not have that toggle here.
+	# Possibly better to have the calcualtion of cols done externally and then just have this encoder take in those cols and apply
+	# Add to todo list!
+
+	encoded_dat = pd.get_dummies(encoded_dat, columns=one_hot_cat, drop_first=True)
+
+	return encoded_dat
+
