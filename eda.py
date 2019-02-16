@@ -9,14 +9,23 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import cv2
+import sys
 csv_output = "truncated_data/"
 # Flag to determine if we want to hear the code whinge about dropping cols that
 # don't exist - some cols may appear or not depending on how much data we read in
 drop_errors = 'ignore'
 
 # Import full dataset
+try:
+    nrows=int(input("Number of rows to import (-1 for all): "))
+except ValueError:
+    print "Not a number"
+
 print("\n---------- Getting data ----------")
-data = pd.read_csv("data/us_perm_visas.csv"	, nrows = 1000,  low_memory = False)
+if nrows == -1:
+	data = pd.read_csv("data/us_perm_visas.csv",  low_memory = False)
+else:
+	data = pd.read_csv("data/us_perm_visas.csv", nrows = nrows,  low_memory = False)
 nrows = len(data)
 # Output number of each outcome
 print(data['case_status'].value_counts())
