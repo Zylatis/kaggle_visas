@@ -25,11 +25,13 @@ except:
 	exit(0)
 config = f.read()
 assert len(config) != 0
+if config != 'Agg' and config != 'pass':
+	print("Invalid matplotlib config (check spaces)")
+	exit(0)
 if config == 'Agg':		
 	matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
-
-
 img_folder = "imgs/"
 eps = 10**(-3)
 
