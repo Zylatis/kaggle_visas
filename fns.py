@@ -1,7 +1,7 @@
 import pandas as pd
 import scipy.stats as ss
 from sklearn import tree, linear_model, ensemble
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KernelDensity
@@ -12,8 +12,7 @@ import sys
 import copy
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import matplotlib
-import cv2
-import itertools
+import multiprocessing as mp
 
 # Hacky but functional!
 # This is because of some stuff with the Google Cloud install
@@ -60,26 +59,48 @@ def cramers_corrected_stat(confusion_matrix):
 	kcorr = k - ((k-1)**2)/(n-1)
 	return np.sqrt(phi2corr / ( min( (kcorr-1), (rcorr-1)) + eps)  )
 
+def cramers_corr_inner( args ):
+	df, col1 = args
+	cols = df.columns
+	row = []
+	for col2 in cols:
+		if col2 == col1:
+			row.append(1.)
+		else:
+			confusion_matrix = pd.crosstab(df[col1].values, df[col2].values).astype('int32')
+			row.append( cramers_corrected_stat(confusion_matrix))
+	return row
 
-def get_cramers_corr( df ):
+
+def get_cramers_corr( df, parallel = False ):
 	# Computes Cramers correlation coefficient for a dataframe consisting *only*
 	# of categoricals. Uses 'cramers_corrected_stat()' for a given confusion matrix
 	# for a pair of features
 	corr_matt = []
 	n_iterations = 1.*len(df.columns)**2
 	count = 0.
-	for col1 in df.columns:
-		row = []
-		for col2 in df.columns:
-			if col1 == col2:
-				row.append(1.)
-			else:
-				confusion_matrix = pd.crosstab(df[col1].values, df[col2].values).astype('int32')
-				# print col1, col2, sys.getsizeof(confusion_matrix)
-				row.append( cramers_corrected_stat(confusion_matrix))
-				confusion_matrix = []	
-			count += 1
-		corr_matt.append(row)
+
+	# Includes paralle imp as a flag initially to make sure the paralle imp. worked properly.
+	# Also makes for a good test case, potentially
+	# ALSO NOTE: this parallel code, being done with multiprocessing and thus hamstrung by the GIL,
+	# will make n_core copies of the entire dataframe, one for each 'thread', so don't use if memory an issue
+	# (or move to numba or something)
+	if( parallel ):
+		p = mp.Pool( mp.cpu_count() )
+		args = [ [df, col] for col in df.columns ]
+		corr_matt = p.map(cramers_corr_inner, args )
+	else:
+		for col1 in df.columns:
+			row = []
+			for col2 in df.columns:
+				if col1 == col2:
+					row.append(1.)
+				else:
+					confusion_matrix = pd.crosstab(df[col1].values, df[col2].values).astype('int32')
+					row.append( cramers_corrected_stat(confusion_matrix))
+					confusion_matrix = []	
+				count += 1
+			corr_matt.append(row)
 	return corr_matt
 
 
@@ -258,7 +279,7 @@ def cramers_corr_plot( categoricals, filename ):
 	# (assumes of conceptually similar things are alphabetically similar, but reasonable if prefixes used)
 	cols_sorted = sorted(cols)
 	categoricals = categoricals[cols_sorted]
-	cramers_corr_matrix = get_cramers_corr( categoricals )
+	cramers_corr_matrix = get_cramers_corr( categoricals, parallel = True )
 	corr_matt = np.asarray(cramers_corr_matrix)
 	matplotlib.rcParams.update({'font.size': 6})
 	fig, ax = plt.subplots()

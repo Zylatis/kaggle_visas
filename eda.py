@@ -120,10 +120,16 @@ for col in divided_features['one_hot']:
 
 print("\nCompute Cramers correlations for all, trimmed, and final set of categoricals:")
 fns.cramers_corr_plot( categoricals, "full_correlation")
+
+# Drop errors below is an *excellent* example of silencing good warnings
+# If you drop a comma below it won't complain, it just won't drop the cols you think it is dropping
+# Todo: come back and re-implement the cross check so can re-enable the errors
 categoricals.drop([
 	"employer_city",
-	"employer_state"
-	], axis = 1, inplace = True, errors = drop_errors)
+	"employer_state",
+	"pw_soc_title"	
+	], axis = 1, inplace = True, errors = drop_errors) 
+
 fns.cramers_corr_plot( categoricals, "truncated_correlation")
 
 print("\nPrepare ordinal plots:")
