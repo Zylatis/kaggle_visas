@@ -5,8 +5,6 @@ import dat
 import numpy as np
 import copy
 import matplotlib
-# matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import cv2
 import sys

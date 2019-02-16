@@ -12,10 +12,22 @@ import sys
 import copy
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import matplotlib
-# matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import cv2
 import itertools
+
+# Hacky but functional!
+# This is because of some stuff with the Google Cloud install
+# (should know more about this, add it to the pile!)
+try:
+	f = open("matplotlib_config.dat", "r")
+except:
+	print("Couldn't find matplotlib_config.dat")
+	exit(0)
+config = f.read()
+assert len(config) != 0
+if config == 'Agg':		
+	matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 
 img_folder = "imgs/"
