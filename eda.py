@@ -67,9 +67,12 @@ columns = copy.deepcopy(data.columns) # we might make changes to this later, saf
 max_perc_nan = 0.1
 missing_summary = pd.DataFrame(index = columns, columns = ['% NAN'])
 missing_summary.index.name = 'FEATURE'
-missing_summary['% NAN'] = [ round(1.-len(data[col].dropna())/(1.*nrows),2) for col in columns]
+missing_summary['% NAN'] = [ round(1.-len(data[col].dropna())/(1.*nrows),4) for col in columns]
 missing_summary = missing_summary[missing_summary['% NAN'] < max_perc_nan]
 non_na_columns = missing_summary.index.values
+
+
+print 1.*len(data[data['case_status'] == 'Certified'])/(1.*len(data))
 
 assert len(non_na_columns) > 0
 data = data[non_na_columns].dropna()
@@ -109,6 +112,7 @@ print("Number of categoricals: " + str(n_cat) + ". Number of ordinals: " + str( 
 fns.standardise_strings( categoricals )
 
 # Collect all the cleaned up bits back into a single dataframe and poop out for later fitting
+print("\n---------- Dumping truncated data to file ----------")
 data = pd.concat([categoricals, ordinals], axis=1)
 data.to_csv(csv_output+"pruned_data_eda.csv")
 
@@ -135,9 +139,6 @@ fns.cramers_corr_plot( categoricals, "truncated_correlation")
 print("\nPrepare ordinal plots:")
 fns.plot_ordinal( data, 'annual_salary', 1000., 300)
 fns.plot_ordinal( data, 'decision_date_elapsed', 1., 200.)
-
-# Collect all the data together after trimming and so on
-print("\n---------- Dumping truncated data to file ----------")
 
 
 	

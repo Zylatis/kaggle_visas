@@ -9,7 +9,7 @@ from dat import *
 # Get data but only keep certified and denied outcomes 
 # (future work could possibly include the merger of the other outcomes, i.e. certified expired as certified)
 print "##Getting data:##"
-data = pd.read_csv("data/us_perm_visas.csv", nrows = 10000, low_memory = False)
+data = pd.read_csv("data/us_perm_visas.csv",  low_memory = False)
 print data['case_status'].value_counts()
 data['case_status'] = data['case_status'].str.replace( "Certified-Expired","Certified")
 print "MEM:"
@@ -28,7 +28,7 @@ sorted_dates = data.sort_values(by = ['decision_date_elapsed'])['decision_date_e
 start = sorted_dates.iloc[0]
 
 data['decision_date_elapsed'] = data['decision_date_elapsed'].subtract( [start]*len(data) ).apply(lambda x: x.days)
-data['employer_state'] = data['employer_state'].map(fns.us_state_abbrev_cap)
+data['employer_state'] = data['employer_state'].map(us_state_abbrev_cap)
 
 pd.Series(data.columns).to_csv("all_cols.csv")
 cols = data.columns
@@ -41,6 +41,10 @@ non_na_cols = []
 for col in cols:
 	if len(data[col].dropna()) >  0.9*len(data[col]):
 		non_na_cols.append(col)
+
+
+print 1.*len(data[data['case_status'] == 'Certified'])/(1.*len(data))
+exit(0)
 
 # Keep only the columns where >90% of the data are not nan, then drop the rows
 # which have *ANY* entry as nan

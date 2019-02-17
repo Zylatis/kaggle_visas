@@ -3,6 +3,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import fns
 import copy
+n_round = 4
 # plot cumulative certified distribution with row number
 # MAIN
 # Get data but only keep certified and denied outcomes 
@@ -10,7 +11,6 @@ import copy
 print "##Getting data:##"
 data = pd.read_csv("truncated_data/pruned_data_eda.csv", low_memory = False)
 data.set_index('submission #', inplace = True)
-
 inp = data.drop('case_status',axis = 1) 
 
 # define target variable
@@ -18,6 +18,10 @@ print "##Re-jig target variables##"
 data.loc[data.case_status == 'CERTIFIED', 'case_status'] = 1.
 data.loc[data.case_status == 'DENIED', 'case_status'] = 0.
 out = data['case_status'].astype('float')
+
+print("##Fraction of certified over data (truncated in eda.py) ##")
+print round( len(data[data['case_status'] == 1])/(1.*len(data)), n_round)
+
 
 print("\n---------- Check categoricals ----------")
 divided_features = fns.divide_features(inp)
@@ -59,4 +63,8 @@ print("\n")
 
 print("-------------------NN classifier-------------------")
 fns.NN(data_dict)
+print("\n")
+
+print("-------------------SVM classifier-------------------")
+fns.SVM(data_dict)
 print("\n")

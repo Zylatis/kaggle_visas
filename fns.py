@@ -1,6 +1,6 @@
 import pandas as pd
 import scipy.stats as ss
-from sklearn import tree, linear_model, ensemble
+from sklearn import tree, linear_model, ensemble, svm
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from sklearn.neural_network import MLPClassifier
@@ -205,6 +205,17 @@ def logit( data_dict ):
 	}
 	clf = linear_model.LogisticRegression()
 	fit_model(clf, data_dict, param_space, "logit")
+
+
+def SVM( data_dict ):
+	param_space = {
+		'nu' :[0.1] ,
+		'degree' : [1,2,3],
+		'kernel' : ['linear', 'poly', 'rbf', 'sigmoid'],
+		'cache_size' : [5000]
+	}
+	clf = svm.NuSVC()
+	fit_model(clf, data_dict, param_space, "SVM")
 	
 def NN( data_dict ):
 	clf = MLPClassifier()
