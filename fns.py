@@ -143,7 +143,7 @@ def fit_model( clf, data_dict, param_space, model ):
 	
 	# add in stochastic hyperparam optimisation
 
-	random_opt = GridSearchCV( clf, param_grid = param_space,  cv = 5, n_jobs = -1, return_train_score = True)
+	random_opt = GridSearchCV( clf, param_grid = param_space, cv = 3, n_jobs = -1, return_train_score = True, verbose = 1)
 	random_opt.fit(train_x, train_y)
 	#~ print random_opt.cv_results_.keys()
 	best = search_summary( random_opt.cv_results_, model)
@@ -168,7 +168,7 @@ def single_tree(data_dict):
 	
 	clf = tree.DecisionTreeClassifier()
 	param_space = {
-		'max_depth' : list(range(1,20)),
+		'max_depth' : [1,5,10],
 		'criterion' : ["gini", "entropy" ],
 		'class_weight' : [None, 'balanced'],
 		'min_samples_leaf' : [10,100],
@@ -180,7 +180,7 @@ def single_tree(data_dict):
 def forest( data_dict ):
 	# Define and run tree classifier
 	param_space = {
-		'max_depth' : list(range(1,20)),
+		'max_depth' : [5,10],
 		'criterion' : ["gini", "entropy" ],
 		'class_weight' : [None, 'balanced'],
 		'min_samples_leaf' : [10,100],
@@ -197,10 +197,9 @@ def forest( data_dict ):
 
 def logit( data_dict ):
 	param_space = {
-		'solver' : ['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],
+		'solver' : ['newton-cg', 'lbfgs', 'sag', 'saga'],
 		'class_weight' : [None, 'balanced'],
-		'max_iter' : [10,100,500],
-		'random_state' : [0],
+		'max_iter' : [5000],
 		'n_jobs' : [-1]
 	}
 	clf = linear_model.LogisticRegression()
@@ -209,9 +208,9 @@ def logit( data_dict ):
 
 def SVM( data_dict ):
 	param_space = {
-		'nu' :[0.1] ,
+		'nu' :[0.01] ,
 		'degree' : [1,2,3],
-		'kernel' : ['linear', 'poly', 'rbf', 'sigmoid'],
+		'kernel' : [ 'poly', 'rbf', 'sigmoid'],
 		'cache_size' : [5000]
 	}
 	clf = svm.NuSVC()
@@ -220,16 +219,14 @@ def SVM( data_dict ):
 def NN( data_dict ):
 	clf = MLPClassifier()
 	param_space = {
-		'solver' : ['lbfgs', 'sgd', 'adam'],
-		'activation' : ['identity', 'logistic', 'tanh', 'relu'],
-		#~ 'learning_rate' : ['constant', 'invscaling', 'adaptive'],
-		'random_state' : [0],
-		'max_iter' : [500],
+		'solver' : ['adam'],
+		'activation' : [ 'logistic', 'tanh', 'relu'],
+		'learning_rate' : ['constant',  'adaptive'],
+		'max_iter' : [1500],
 		#~ 'n_jobs' : [-1],
 		'hidden_layer_sizes' : [
 						[2,2,2 ],
-						[5,2 ],
-						[10,2],
+						[5,2],
 						[10,5]
 						]
 	}

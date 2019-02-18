@@ -8,11 +8,24 @@ n_round = 4
 # MAIN
 # Get data but only keep certified and denied outcomes 
 # (future work could possibly include the merger of the other outcomes, i.e. certified expired as certified)
+
+# Import full dataset
+try:
+    nrows=int(input("Number of rows to import (-1 for all): "))
+except ValueError as e:
+	print(e)
+	print("Input not a number")
+
 print "##Getting data:##"
-data = pd.read_csv("truncated_data/pruned_data_eda.csv", low_memory = False)
+file = "truncated_data/pruned_data_eda.csv"
+if nrows == -1:
+	data = pd.read_csv(file,  low_memory = False)
+else:
+	data = pd.read_csv(file, nrows = nrows,  low_memory = False)
+
 data.set_index('submission #', inplace = True)
 inp = data.drop('case_status',axis = 1) 
-
+print("Imported " + str(len(data)) + " rows")
 # define target variable
 print "##Re-jig target variables##"
 data.loc[data.case_status == 'CERTIFIED', 'case_status'] = 1.
