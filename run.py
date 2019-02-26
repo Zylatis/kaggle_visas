@@ -57,27 +57,34 @@ scaled_test_x = scaler.transform(test_x)
 data_dict = { 'train_x' : scaled_train_x, 'test_x' : scaled_test_x, 'train_y' : train_y, 'test_y' : test_y }
 
 print("##Fraction of certified in each set:##")
-print round( len(train_y[train_y == 1])/(1.*len(train_y)), n_round)
-print round( len(test_y[test_y == 1])/(1.*len(test_y)), n_round)
+train_frac =  round( len(train_y[train_y == 1])/(1.*len(train_y)), n_round)
+test_frac = round( len(test_y[test_y == 1])/(1.*len(test_y)), n_round)
+
+print(train_frac, test_frac)
 print("\n")
 
 
-print("-------------------Single tree classifier-------------------")
-fns.single_tree(data_dict)
+# print("-------------------Single tree classifier-------------------")
+# fns.single_tree(data_dict)
+# print("\n")
+
+# print("-------------------Forest classifier-------------------")
+# fns.forest( data_dict )
+# print("\n")
+
+print("-------------------XGBoost classifier-------------------")
+fns.XGBoost( data_dict, train_frac )
 print("\n")
 
-print("-------------------Forest classifier-------------------")
-fns.forest( data_dict )
-print("\n")
 
-print("-------------------Logit classifier-------------------")
-fns.logit(data_dict)
-print("\n")
+# print("-------------------Logit classifier-------------------")
+# fns.logit(data_dict)
+# print("\n")
 
-print("-------------------NN classifier-------------------")
-fns.NN(data_dict)
-print("\n")
+# print("-------------------NN classifier-------------------")
+# fns.NN(data_dict)
+# print("\n")
 
-print("-------------------SVM classifier-------------------")
-fns.SVM(data_dict)
-print("\n")
+# print("-------------------SVM classifier-------------------")
+# fns.SVM(data_dict)
+# print("\n")

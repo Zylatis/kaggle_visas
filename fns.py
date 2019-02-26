@@ -13,6 +13,7 @@ import copy
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import matplotlib
 import multiprocessing as mp
+from xgboost import XGBClassifier
 
 # Hacky but functional!
 # This is because of some stuff with the Google Cloud install
@@ -185,15 +186,22 @@ def forest( data_dict ):
 		'class_weight' : [None, 'balanced'],
 		'min_samples_leaf' : [10,100],
 		'max_leaf_nodes' : [ 100,1000],
-		'n_estimators' : [ 10,50 ]
+		'n_estimators' : [ 10,50,100 ]
 	}
 	clf = ensemble.RandomForestClassifier()
 	fit_model(clf, data_dict, param_space, "forest")   
 	
-#~ def boosted( data_dict, min_leaf_samples, max_leaf_nodes, max_depth, n_estimators  ):
-	#~ # Define and run tree classifier
-	#~ clf = ensemble.GradientBoostingClassifier( n_estimators = n_estimators, min_samples_leaf = min_leaf_samples, max_depth = max_depth, max_leaf_nodes = max_leaf_nodes) #max_leaf_nodes  loss = 'exponential',
-	#~ fit_model(clf, data_dict)
+def XGBoost( data_dict,train_frac ):
+	# Define and run tree classifier
+	param_space = {
+		'max_depth' : [5,10],
+		'booster' : ['gbtree', 'gblinear', 'dart'],
+		'n_estimators' : [ 10,50,100 ],
+		'scale_pos_weight' : [ 1., train_frac, 1.-train_frac ]
+	}
+	clf = XGBClassifier()
+	fit_model(clf, data_dict, param_space, "forest")   
+	
 
 def logit( data_dict ):
 	param_space = {
